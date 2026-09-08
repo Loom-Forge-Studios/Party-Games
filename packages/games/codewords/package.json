@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Codewords (word-association clue game, generic non-trademarked name) rules module. STUB — owned by A10 (Wave 2). Rule modules must not import Three.js.",
+  "description": "Codewords (word-association clue game, generic non-trademarked name) — rules + presenter. Owned by A10 (Wave 2). module.ts/index.ts (rules) must not import Three.js; only presenter.ts may.",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "engines": {
@@ -11,6 +11,11 @@
   },
   "dependencies": {
     "@party/protocol": "*",
-    "@party/engine": "*"
+    "@party/engine": "*",
+    "@party/client": "*",
+    "three": "^0.186.0"
+  },
+  "devDependencies": {
+    "@types/three": "^0.185.4"
   }
 }

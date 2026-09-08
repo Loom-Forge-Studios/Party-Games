@@ -1,50 +1,38 @@
-// STUB ONLY — owned by A10 (Wave 2).
-//
-// Real Codewords rules (team-based word-association clue-giving game;
-// setup/reduce/view/currentActors/isTerminal/defaultAction — the key card
-// telling which words belong to which team must be hidden from guessers in
-// view(), visible only to the current clue-giver) go here. See
-// packages/games/checkers for the registerGame() pattern this file follows.
+// Codewords — owned by A10 (Wave 2). See module.ts for the real rules
+// (setup/reduce/view/currentActors/isTerminal/defaultAction) and
+// presenter.ts for the 3D presentation. This file's only job is wiring the
+// real module into the shared registry, overwriting the stub entry that
+// was here before — see packages/engine/src/registry.ts's docstring for
+// why every game package does this from its own entry file instead of
+// editing the registry directly.
 //
 // IMPORTANT (legal, public repo): "Codewords" is this game's name in this
-// project precisely to avoid using the trademarked title it is inspired by
-// — do not rename it back. No third-party word lists may be copied in;
-// original or CC0 word lists only, recorded in /ASSETS.md if sourced.
+// project precisely to avoid using the trademarked title it is inspired
+// by — do not rename it back. Its wordlist (./data/wordlist.ts) is
+// originally authored for this repo, not copied from any published game.
 //
-// Rule modules must not import Three.js and must route all randomness
-// (word/board shuffling) through the injected Rng — never Math.random().
+// Rule modules (this file, module.ts) must not import Three.js — see
+// presenter.ts for the client-side counterpart, which is the only file in
+// this package allowed to.
 
-import { registerGame, IllegalAction, type GameModule } from '@party/engine';
-
-interface CodewordsState {
-  // Real board/team/key-card representation lands in Wave 2.
-}
-
-type CodewordsAction = unknown;
-type CodewordsView = Record<string, never>;
-
-const codewordsModule: GameModule<CodewordsState, CodewordsAction, CodewordsView> = {
-  meta: {
-    id: 'codewords',
-    title: 'Codewords',
-    minPlayers: 4,
-    maxPlayers: 8,
-    teams: { count: 2, minPerTeam: 2 },
-    estMinutes: 20,
-    summary: 'Team word-association clue game. Rules not implemented yet.',
-  },
-  setup: () => ({}),
-  reduce: () => {
-    throw new IllegalAction('codewords: no rules implemented yet');
-  },
-  view: () => ({}),
-  currentActors: () => [],
-  isTerminal: () => null,
-  defaultAction: () => {
-    throw new IllegalAction('codewords: no default action implemented yet');
-  },
-};
+import { registerGame } from '@party/engine';
+import { codewordsModule } from './module.js';
 
 registerGame('codewords', codewordsModule);
 
+export { codewordsModule };
 export default codewordsModule;
+export type {
+  CodewordsState,
+  CodewordsAction,
+  CodewordsView,
+  CodewordsTileView,
+  CodewordsTeamView,
+  Tile,
+  TileColor,
+  Team,
+  Role,
+  Phase,
+  Clue,
+} from './module.js';
+export { GRID_SIZE, BOARD_SIZE } from './module.js';
