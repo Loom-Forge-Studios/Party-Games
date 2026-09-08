@@ -14,3 +14,12 @@ export interface AssetLoader {
   /** Resolves to a THREE.Object3D (typed unknown here — see file doc). Never rejects: falls back to a placeholder primitive and logs a warning instead. */
   load(key: string): Promise<unknown>;
 }
+
+/**
+ * Real implementation. See `placeholder-loader.ts` for the class and
+ * `procedural/*` for what each recognised key builds; this re-export keeps
+ * "the AssetLoader interface" and "the AssetLoader implementation" in the
+ * same file consumers are told to look at.
+ */
+export { PlaceholderAssetLoader } from './placeholder-loader.js';
+export type { PlaceholderAssetLoaderOptions } from './placeholder-loader.js';
