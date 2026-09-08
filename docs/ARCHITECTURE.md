@@ -4,6 +4,19 @@ This document is self-contained: every later agent reads this instead of any
 external planning doc. If something you need to know isn't here, that's a
 gap worth reporting, not a reason to guess.
 
+**A note on vintage.** Most of this document was written during Wave 0/1, as
+the original design brief, before any of Wave 2's three games or the
+client's real 3D scene existed. It has been kept accurate since — the
+protocol/engine contracts in §4 are still frozen and unchanged — but two
+pieces of real, as-built structure were added by the overseer *after* Wave 2
+landed, once dynamically loading a per-game presenter turned out to create a
+circular package dependency the original plan hadn't anticipated: the
+`@party/presenter` package (§6) and the client's lobby→table mounting glue
+(§9). If you're looking for "where do I import `PresenterCtx` from" or "how
+does a game actually get on screen", §6 and §9 are the current truth; the
+rest of this document (§1-§5, §7, §8) describes the original design, still
+accurate.
+
 ## 1. System diagram
 
 ```
@@ -47,14 +60,21 @@ dependencies.
 
 The client is Three.js + TypeScript, structured as:
 
-- **app** — bootstrap, WebSocket connection, lobby flow, mounting the
-  active game's presenter.
+- **app** — bootstrap, WebSocket connection, lobby flow, and the
+  lobby→table handoff that mounts the active game's presenter (`table-mount.ts`
+  + `game-presenters.ts` — see §9, added by the overseer after Wave 2).
 - **ui** — 2D/DOM overlay (lobby screen, HUD, chat). Renders `RoomState`,
   never game rules.
 - **table** — the shared 3D scene: renderer bootstrap, seat layout, the
-  `PresenterCtx` (§6) that per-game presenters mount into.
-- **camera** — the `CameraDirector` (§2). Knows nothing about any specific
-  game.
+  `PresenterCtx` factory (§6) that per-game presenters mount into.
+- **camera** — the `ThreeCameraDirector` implementation of `CameraDirector`
+  (§2, §6). Knows nothing about any specific game.
+
+Below `@party/client` in the dependency graph sits **`@party/presenter`**
+(`packages/presenter`) — a small leaf package added after Wave 2 holding the
+`PresenterCtx`/`CameraDirector`/`SeatLayout`/`GamePresenter` *type contracts*
+(and a couple of small utilities). See §6 for why it exists and where it
+sits in the package graph.
 
 ## 2. The GameEvent stream — the seam that makes everything else work
 
@@ -305,14 +325,67 @@ the exact same validation and event emission as a real action). This is not
 enforced by the type system — it's a runtime contract for whichever wave
 builds `net`/`host` (currently A1/A3) to implement.
 
-## 6. The presenter contract (client side)
+## 6. The presenter contract (client side) — canonical source is `@party/presenter`
 
-This does not need its own package yet — `packages/client` is a Wave 1
-stub. A4/A5 will formalize this in `packages/client` once they land, but the
-shape is fixed now so every later game (`packages/games/*`) can be written
-against it:
+**This section was originally written against a Wave-1 stub `packages/client`
+and said the contract "doesn't need its own package yet." That's no longer
+true — read this section, not the original brief, for where these types
+actually live.**
+
+The shape below is unchanged from what Wave 0 specified — no game presenter
+written against it needs to change — but its physical home moved. When the
+overseer wired the client to dynamically `import()` each game's presenter
+(§9), `@party/client` started depending on every `packages/games/*` package
+(to know what to dynamically import and to typecheck the result). Each game
+package, in turn, already depended on `@party/client` for `PresenterCtx` and
+friends (Wave 2 games were built in parallel worktrees against a Wave-1
+`packages/client` stub). That's a circular TypeScript project reference
+(`client → games/* → client`), which `tsc -b` refuses to build.
+
+**Resolution**: a small leaf package, **`@party/presenter`**
+(`packages/presenter`), now holds *only* the type contracts every
+presenter — the client's own table/camera code, and every game's
+`presenter.ts` — needs: `PresenterCtx`, `CameraDirector`, `SeatLayout`,
+`CameraPose`, `GamePresenter`, plus the table geometry constants
+(`TABLE_RADIUS`, `TABLE_HEIGHT`, `TABLE_SURFACE_Y`) and a couple of small DOM
+utilities. It has **no dependency on `@party/client`**. The dependency graph
+is now a straight line — `@party/protocol`/`@party/engine`/`@party/assets` ←
+`@party/presenter` ← both `@party/client` *and* every `packages/games/*`
+package — never circular. `@party/client` still re-exports everything from
+its old locations (`table/index.ts`, `camera/index.ts`) for source
+compatibility with any Wave 1/2 code that imported from there, and it
+*implements* the contracts (`ThreeCameraDirector`, `createPresenterCtx`,
+`computeSeatLayout`); it does not redefine them.
+
+**When writing a new game's `presenter.ts`, import these types from
+`@party/presenter`, never from `@party/client`.** Importing from
+`@party/client` from a game package is exactly the circular edge this
+package exists to avoid re-introducing — see
+[docs/ADDING_A_GAME.md](ADDING_A_GAME.md).
 
 ```ts
+// packages/presenter/src/index.ts — canonical source; read the file for
+// full doc comments on each member.
+export interface CameraPose {
+  position: { x: number; y: number; z: number };
+  target: { x: number; y: number; z: number };
+}
+
+export interface CameraDirector {
+  focus(hint: FocusHint): Promise<void>;   // ease toward the hint, dwell, ease back home
+  home(): Promise<void>;                   // ease back to the local player's seat pose
+  setHome(pose: CameraPose): void;         // sets the pose 'home' eases back to
+  snap(): void;                            // immediate cut, no easing
+}
+
+export interface SeatLayout {
+  seat: number;                            // 0..n-1, seats[i].seat === i always
+  position: { x: number; y: number; z: number };
+  rotationY: number;
+  avatar: THREE.Object3D;
+  cameraPose: CameraPose;
+}
+
 export interface PresenterCtx {
   scene: THREE.Scene;
   table: THREE.Object3D;          // pieces parent to this
@@ -399,4 +472,122 @@ These apply to every wave, not just A0:
   brief) must stay minimal until the wave that owns them: a compiling
   package.json + tsconfig.json + one small entry file. Do not build real
   behaviour into a stub ahead of its wave — that's how two agents end up
-  editing the same file.
+  editing the same file. (Historical note: as of this writing every package
+  has landed its real implementation — there are no remaining stubs. This
+  rule stays here for the shape of any future wave that adds a genuinely
+  new stub package.)
+
+## 9. Client wiring: lobby → table → mounted presenter
+
+Added by the overseer after Wave 2, in
+`packages/client/src/app/table-mount.ts` and
+`packages/client/src/app/game-presenters.ts`. Neither file was owned by a
+single Wave 1/2 agent — `index.html`'s bootstrap call and `app/index.ts`'s
+own header comment both say so explicitly: wiring the lobby→table handoff
+to an actual mounted 3D presenter is deliberately a cross-cutting
+integration step, done once the pieces it wires together (A4's lobby flow,
+A5's 3D scene/`PresenterCtx` factory, A6's camera director, and Wave 2's
+three game presenters) all existed.
+
+**`game-presenters.ts`** is a `GameId -> GamePresenter` dynamic loader:
+
+```ts
+const LOADERS: Record<GameId, Loader> = {
+  checkers: async () => {
+    const mod = await import('@party/game-checkers/presenter');
+    return new mod.CheckersPresenter();
+  },
+  holdem: async () => { /* ... */ },
+  codewords: async () => { /* ... */ },
+};
+```
+
+It exists for two reasons: each of Wave 2's three games exposes its
+presenter differently (a class, a singleton, a factory function — see each
+game's own `presenter.ts`), so this is the one place that difference is
+absorbed instead of every call site knowing about it; and the loader uses a
+dynamic `import()` per game id so mounting one game's presenter doesn't pull
+all three games' Three.js code into a session that only ever plays one.
+
+**This hardcoded map is the one place a new game must be wired in by
+hand** — nothing here (or in `packages/server/src/index.ts`, see below)
+iterates `packages/games/*` automatically. Forgetting this step is the most
+common way "I implemented a `GameModule` and a presenter" fails to become
+"the game is actually playable" — see
+[docs/ADDING_A_GAME.md](ADDING_A_GAME.md), which calls this out as its own
+step for exactly that reason.
+
+**`table-mount.ts`** exports `mountTable(opts)`, called once per
+lobby→table transition (when `RoomState.phase` becomes `'playing'`). It:
+
+1. Builds the `<canvas>`, a `THREE.PerspectiveCamera`, and the renderer into
+   the container `index.html` reserves for the 3D view.
+2. Constructs a `ThreeCameraDirector` and, via `createPresenterCtx`
+   (`packages/client/src/table/presenter-ctx.ts`), the full `PresenterCtx`
+   for this room — seat layout computed from the room's player count and the
+   local player's seat, `emit` wired to `connection.send({ t: 'game.action',
+   action })`.
+3. Runs a render loop continuously for as long as a table is mounted
+   (documented in the file as a deliberate trade-off: `CameraDirector` eases
+   poses on its own internal `requestAnimationFrame` loop but the frozen
+   contract gives it no "something changed, please redraw" hook, so this
+   trades the idle-frame battery optimization for guaranteed-correct
+   rendering during camera moves).
+4. Calls `loadGamePresenter(room.gameId)` and `presenter.mount(ctx)`.
+5. Subscribes to the connection's incoming messages and forwards them to
+   the mounted presenter exactly as §3 "the round trip" specifies:
+   `game.view` → `presenter.renderView(view)`; `game.events` → each event's
+   `presenter.playEvent(ev)` awaited in order (so one event's animation, and
+   any camera move it triggers, finishes before the next starts — matching
+   `playEvent`'s documented contract); `game.over` → a DOM banner overlay
+   with the winner(s)/reason (not part of the 3D scene — this is the one
+   place the app layer, not a presenter, reacts to `game.over`).
+6. Returns a `MountedTable` whose `unmount()` tears all of the above down —
+   call it before mounting again (e.g. leaving one game's table to start
+   another).
+
+Nothing in this file implements game rules or camera behaviour; it only
+wires already-built pieces together and forwards server messages.
+
+## 10. Dev workflow
+
+`npm run dev` from the repo root (see the root `package.json`'s `dev`
+script) runs **both** of these concurrently, and waits on both:
+
+- `npm run dev --workspace=@party/server` — `tsx watch src/index.ts`. Listens
+  on `PORT` (default `8080`), `ws` mounted at `/ws`, health check at
+  `/healthz`. `tsx watch` restarts the process on any source change under
+  `packages/server`.
+- `npm run dev --workspace=@party/client` — `vite`. Dev server on port
+  `5173`, serving the client's TypeScript directly (no separate build step
+  needed for client-only changes). Its dev proxy
+  (`packages/client/vite.config.ts`) forwards `/ws` (as a websocket) and
+  `/healthz` to `http://localhost:8080`, so the browser only ever talks to
+  `5173` — the same shape as production, where Caddy reverse-proxies WSS to
+  the Node process (§1) instead of Vite doing it.
+
+**A completely fresh clone needs one `npm run build` (or `just build`)
+before `npm run dev` will work.** Every package resolves its workspace
+dependencies through compiled `dist/` output (via each package's
+`package.json` `main`/`types`/`exports` fields — see §8), and a fresh
+checkout has no `dist/` yet: the server fails immediately with
+`ERR_MODULE_NOT_FOUND` for `@party/protocol/dist/index.js`, and Vite's
+dependency pre-bundling fails to resolve `@party/presenter` /
+`@party/protocol` for the same reason. Running the build once populates
+every package's `dist/`, after which `npm run dev` behaves as you'd expect
+for iterative work (this was verified in this environment: a completely
+fresh `npm install` and `npm run dev` reproduced both errors above; running
+`npm run build` first and then `npm run dev` brought up a real server on
+`:8080` and a real client on `:5173` that connected to it).
+
+**`SERVER_SEED`** (env var, unset by default): when set, `packages/server`'s
+`HostManager` seeds each room's game deterministically — a fixed base seed
+(the env var's value) plus an incrementing per-room counter — instead of
+`Date.now()`. This exists specifically so end-to-end (Playwright) tests can
+assert on actual game outcomes instead of just "something happened
+without crashing". See `packages/server/src/index.ts`'s `seedEnv`/`seedOpt`
+handling and `packages/server/src/host/host-manager.ts`'s
+`HostManagerOptions.seed` doc comment. Not meant to be set for normal/
+production play — every room would otherwise start from the same
+deterministic sequence, which is exactly the opposite of what real games
+want.
