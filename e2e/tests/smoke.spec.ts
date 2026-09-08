@@ -1,12 +1,19 @@
 import { test, expect } from '@playwright/test';
+import { installWsCaptureOn } from '../support/ws-capture.js';
+import { enterUsername } from '../support/lobby-flow.js';
 
-// STUB ONLY — owned by A11 (Wave 1). There's no real app to test against
-// yet (packages/client and packages/server are Wave 1 stubs), so this just
-// proves the Playwright harness itself works end-to-end: a browser launches,
-// navigates, and closes cleanly. CI's e2e step must run and pass, not be
-// skipped — this is that placeholder. Replace with real lobby/game
-// coverage once packages/client has something to click on.
-test('playwright harness launches a browser and can navigate', async ({ page }) => {
-  await page.goto('about:blank');
-  expect(await page.title()).toBe('');
+// Real coverage now lives in checkers-full-game.spec.ts, kick-player.spec.ts,
+// reload-resume.spec.ts and start-blocked.spec.ts (see docs/ARCHITECTURE.md's
+// account of Wave 2 landing real games/presenters). This file stays a fast,
+// narrowly-scoped canary: does the real client (packages/client, via Vite
+// dev) actually boot and successfully complete a `hello` round trip against
+// the real server (packages/server) — i.e. is playwright.config.ts's
+// webServer wiring itself healthy — independent of any lobby/game logic.
+test('the real client boots, connects to the real server, and reaches the menu', async ({ page }) => {
+  await installWsCaptureOn(page);
+  await page.goto('/');
+
+  await enterUsername(page, 'Smoke');
+
+  await expect(page.getByTestId('menu-screen')).toBeVisible();
 });

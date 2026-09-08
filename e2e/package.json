@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "STUB ONLY — owned by A11 (Wave 1). Real end-to-end coverage (join a lobby, play a full game in a browser) lands in later waves. For now this is a single trivial Playwright test so 'just e2e' / CI's e2e step has something real to run.",
+  "description": "Real end-to-end coverage — owned by A11. Spawns the real server + client as child processes (see playwright.config.ts) and drives multiple real BrowserContexts against them: a full Checkers game to game.over, a host kick, a mid-game reload/resume, and a below-minimum room.start rejection.",
   "scripts": {
     "e2e": "playwright test"
   },
@@ -11,6 +11,8 @@
     "node": ">=26"
   },
   "devDependencies": {
-    "@playwright/test": "^1.48.2"
+    "@playwright/test": "^1.48.2",
+    "@party/game-checkers": "*",
+    "@party/protocol": "*"
   }
 }
