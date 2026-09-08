@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Party Games</title>
+  </head>
+  <body>
+    <!--
+      #app-canvas is where A5's table/ mounts the Three.js renderer; it sits
+      behind #app-ui, which is where this package's DOM overlay (src/ui)
+      mounts. Neither exists yet as a real implementation this wave — see
+      docs/ARCHITECTURE.md §1's app/ui/table/camera split.
+    -->
+    <div id="app-canvas"></div>
+    <div id="app-ui"></div>
+    <script type="module">
+      import { bootstrapDefault } from '/src/app/index.ts';
+
+      const root = document.getElementById('app-ui');
+      // onTableHandoff is left unset here — wiring it to actually mount the
+      // 3D table + game presenter (A5/A6 + a game's GamePresenter) is the
+      // overseer's cross-cutting integration step (see docs/ARCHITECTURE.md
+      // and this package's own STUB comments in table/ and camera/).
+      bootstrapDefault(root);
+    </script>
+  </body>
+</html>
