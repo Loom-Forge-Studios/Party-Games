@@ -13,6 +13,16 @@ export interface HostManagerOptions {
   getGame?: (id: GameId) => GameModule<any, any, any> | undefined;
   turnTimeoutMs?: number;
   log?: (message: string) => void;
+  /**
+   * Overseer addition (post-Wave-3 E2E prep): overrides GameHost's per-room
+   * Rng seed, which otherwise defaults to Date.now() (see game-host.ts).
+   * A fixed number seeds every room's game identically; a function is
+   * called once per room.start (e.g. an incrementing counter) so E2E can
+   * still exercise multiple distinct-but-reproducible games in one run.
+   * Wired to the server process via the SERVER_SEED env var in
+   * packages/server/src/index.ts — unset in production.
+   */
+  seed?: number | (() => number);
 }
 
 /**
@@ -31,6 +41,7 @@ export class HostManager {
   private readonly getGame: (id: GameId) => GameModule<any, any, any> | undefined;
   private readonly turnTimeoutMs: number | undefined;
   private readonly log: (message: string) => void;
+  private readonly seedOpt: number | (() => number) | undefined;
   private readonly hosts = new Map<RoomId, GameHost>();
 
   constructor(opts: HostManagerOptions) {
@@ -39,6 +50,7 @@ export class HostManager {
     this.getGame = opts.getGame ?? registryGetGame;
     this.turnTimeoutMs = opts.turnTimeoutMs;
     this.log = opts.log ?? ((message) => console.log(message));
+    this.seedOpt = opts.seed;
 
     this.roomManager.onStart((roomId, room, gameId) => this.startRoom(roomId, room, gameId));
   }
@@ -77,6 +89,8 @@ export class HostManager {
     // rather than leaking its timers.
     this.hosts.get(roomId)?.dispose();
 
+    const seed = typeof this.seedOpt === 'function' ? this.seedOpt() : this.seedOpt;
+
     const host = new GameHost({
       roomId,
       gameId,
@@ -86,6 +100,7 @@ export class HostManager {
       roomManager: this.roomManager,
       turnTimeoutMs: this.turnTimeoutMs,
       log: this.log,
+      ...(seed !== undefined ? { seed } : {}),
       onTerminal: () => {
         if (this.hosts.get(roomId) === host) this.hosts.delete(roomId);
       },

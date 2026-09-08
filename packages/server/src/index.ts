@@ -64,7 +64,22 @@ const connectionManager: ConnectionManager = new ConnectionManager({
 });
 
 const roomManager = new RoomManagerImpl(connectionManager);
-const hostManager = new HostManager({ transport: connectionManager, roomManager });
+
+// SERVER_SEED (unset in production): deterministic per-room game seeding
+// for E2E — see HostManagerOptions.seed's doc comment in host-manager.ts.
+// A fixed base seed plus an incrementing counter keeps rooms started in
+// the same run distinct from each other while staying reproducible run
+// to run, so an E2E suite can assert on outcomes, not just "something
+// happened".
+const seedEnv = process.env.SERVER_SEED;
+let nextSeedOffset = 0;
+const seedOpt = seedEnv !== undefined ? () => Number(seedEnv) + nextSeedOffset++ : undefined;
+
+const hostManager = new HostManager({
+  transport: connectionManager,
+  roomManager,
+  ...(seedOpt ? { seed: seedOpt } : {}),
+});
 
 function handleMessage(playerId: PlayerId, message: ClientMessage): void {
   switch (message.t) {
