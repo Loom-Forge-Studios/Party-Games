@@ -11,7 +11,13 @@ export { ThreeCameraDirector } from './CameraDirector.js';
 export type {
   CameraDirectorOptions,
   ObjectResolver,
-  SeatLayout,
+  // Renamed on export (not in the source file) to avoid colliding with
+  // table/index.ts's SeatLayout at the package barrel (packages/client/src/index.ts
+  // does `export * from './table/index.js'` and `export * from './camera/index.js'`).
+  // This is camera's own minimal structural type (see types.ts) — table's real
+  // SeatLayout is a structural superset and satisfies it at every call site, so
+  // renaming the export doesn't require touching any camera internals.
+  SeatLayout as CameraSeatLayout,
   SeatSource,
   TableBoundsOptions,
 } from './types.js';
