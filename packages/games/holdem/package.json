@@ -1,0 +1,16 @@
+{
+  "name": "@party/game-holdem",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Hold'em poker rules module. STUB — owned by A9 (Wave 2). Rule modules must not import Three.js.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "engines": {
+    "node": ">=26"
+  },
+  "dependencies": {
+    "@party/protocol": "*",
+    "@party/engine": "*"
+  }
+}

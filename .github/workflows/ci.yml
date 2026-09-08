@@ -1,0 +1,39 @@
+name: CI
+
+# INVARIANT: this step list (install, typecheck, test, build, e2e — in that
+# exact order) must stay byte-for-byte in sync with justfile's `verify`
+# recipe. Each step below calls the identically-named `just` recipe so the
+# two can never silently drift — see the comment at the top of justfile.
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  verify:
+    name: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '26'
+          cache: 'npm'
+
+      - uses: extractions/setup-just@v2
+
+      - name: install
+        run: just install
+
+      - name: typecheck
+        run: just typecheck
+
+      - name: test
+        run: just test
+
+      - name: build
+        run: just build
+
+      - name: e2e
+        run: just e2e

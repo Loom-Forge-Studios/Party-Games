@@ -1,0 +1,19 @@
+{
+  "name": "@party/server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Node + ws game server. STUB — net/ (A1), rooms/ (A2), host/ (A3) are placeholders for later waves.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "dev": "tsx watch src/index.ts"
+  },
+  "engines": {
+    "node": ">=26"
+  },
+  "dependencies": {
+    "@party/protocol": "*",
+    "@party/engine": "*"
+  }
+}
