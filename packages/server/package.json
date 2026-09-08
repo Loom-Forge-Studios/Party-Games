@@ -13,7 +13,11 @@
     "node": ">=26"
   },
   "dependencies": {
+    "@party/engine": "*",
     "@party/protocol": "*",
-    "@party/engine": "*"
+    "ws": "^8.21.3"
+  },
+  "devDependencies": {
+    "@types/ws": "^8.18.1"
   }
 }

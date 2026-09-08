@@ -7,3 +7,5 @@
 // header row for the required columns).
 
 export const ASSETS_STUB = true;
+
+export type { AssetLoader } from './loader.js';

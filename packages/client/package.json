@@ -10,7 +10,13 @@
     "node": ">=26"
   },
   "dependencies": {
+    "@party/assets": "^0.1.0",
+    "@party/engine": "*",
     "@party/protocol": "*",
-    "@party/engine": "*"
+    "three": "^0.186.0"
+  },
+  "devDependencies": {
+    "@types/three": "^0.185.4",
+    "vite": "^5.4.21"
   }
 }

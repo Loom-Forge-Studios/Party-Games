@@ -7,3 +7,5 @@
 // "The GameEvent stream" for why this decoupling matters.
 
 export const CAMERA_STUB = true;
+
+export type { CameraDirector, CameraPose } from './director.js';

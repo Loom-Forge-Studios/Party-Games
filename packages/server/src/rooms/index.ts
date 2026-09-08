@@ -9,3 +9,5 @@
 // the package compiles and later agents have a starting point.
 
 export const ROOMS_STUB = true;
+
+export type { RoomManager } from './manager.js';

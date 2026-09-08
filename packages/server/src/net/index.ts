@@ -9,3 +9,5 @@
 // the package compiles and later agents have a starting point.
 
 export const NET_STUB = true;
+
+export type { Transport } from './transport.js';
