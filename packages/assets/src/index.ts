@@ -1,11 +1,18 @@
-// STUB ONLY — owned by A7 (Wave 1).
+// @party/assets — placeholder asset pipeline (A7, Wave 1).
 //
-// Will hold: placeholder primitive-geometry helpers (basic Three.js
-// boxes/cylinders/planes for table/disc/card/dice) so Wave 2 games can
-// start before real assets land, and eventually the real CC0/original 3D
-// assets themselves (each one recorded in /ASSETS.md — see that file's
-// header row for the required columns).
+// `PlaceholderAssetLoader` implements the `AssetLoader` seam
+// (packages/assets/src/loader.ts) entirely with code-generated primitives:
+// checkers discs, a full 52-card deck with canvas-drawn faces, dice, meeple
+// avatar bodies, and wood/felt table swatches — no external files, so every
+// v1 game can render with zero network-fetched assets. See loader.ts for
+// the recognised key scheme. Any third-party binary asset added later goes
+// through ASSETS.md (CC0/original only, license recorded) — there are none
+// yet.
 
-export const ASSETS_STUB = true;
+export type { AssetLoader, PlaceholderAssetLoaderOptions } from './loader.js';
+export { PlaceholderAssetLoader } from './placeholder-loader.js';
 
-export type { AssetLoader } from './loader.js';
+export { MEEPLE_COLORS, type MeepleColorName } from './procedural/meeple.js';
+export { CARD_RANKS, type CardRank, type CardSuitCode } from './procedural/cards.js';
+export type { CheckersVariant } from './procedural/checkers.js';
+export type { TableMaterialKind } from './procedural/table.js';

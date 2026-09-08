@@ -3,12 +3,21 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "STUB — owned by A7 (Wave 1). Will hold placeholder primitive-geometry helpers (Three.js boxes/cylinders/planes for table/disc/card/dice) plus, later, real CC0/original 3D assets recorded in ASSETS.md.",
+  "description": "Placeholder asset pipeline (A7). AssetLoader implementation backed by code-generated primitives (checkers discs, card deck, dice, meeples, wood/felt table materials); real CC0/original assets recorded in ASSETS.md when added.",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
   "engines": {
     "node": ">=26"
   },
+  "files": [
+    "dist"
+  ],
   "dependencies": {
     "three": "^0.186.0"
   }
