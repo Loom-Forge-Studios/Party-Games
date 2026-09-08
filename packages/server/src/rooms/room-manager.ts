@@ -248,6 +248,13 @@ export class RoomManagerImpl implements RoomManager {
       return fail('ILLEGAL_ACTION', 'target is not in this room');
     }
     this.removePlayer(check.room, targetId);
+    // Overseer addition, found via A11's E2E work: the kicked player was
+    // previously never told anything — removePlayer() only broadcasts
+    // room.state to the players still IN the room after the splice. Send
+    // the notification before closing their socket so it has a chance to
+    // actually arrive.
+    this.transport.send(targetId, { t: 'error', code: 'KICKED', message: 'You were removed from the room by the host.' });
+    this.transport.disconnect(targetId, 'kicked');
     return { ok: true };
   }
 

@@ -23,18 +23,16 @@ import {
 // "same hidden hand before and after reload" is a real, load-bearing
 // assertion rather than a coincidence of timing.
 //
-// NOTE on why this test nudges the hand forward by one action after the
-// reload: packages/server/src/host/host-manager.ts's GameHost only ever
-// fans out a fresh game.view from its constructor (game start) or from
-// applyAction() (a real game.action) — there is no separate "resend the
-// current view to a player who just reconnected" path anywhere in
-// packages/server (confirmed with a raw WebSocket probe against the real
-// server during development: a resumed `hello` gets `hello.ok` + `room.state`
-// and nothing else). So a client that reloads genuinely renders nothing
-// until the next action from *either* player triggers the next fan-out —
-// this test drives exactly one such action (a plain call/check that cannot
-// end the hand, so a fresh deal never occurs) and reads the reconnected
-// player's very first post-reload game.view off of that.
+// UPDATE (overseer): A11 originally found a real gap here — a resumed
+// `hello` got `hello.ok` + `room.state` and nothing else, so a reloaded
+// client rendered nothing until the next action from *either* player
+// happened to trigger a fan-out. Fixed via GameHost.resendViewTo() /
+// HostManager.resendViewOnReconnect(), called from net's onHello when
+// `resumed` is true (see packages/server/src/index.ts) — a reconnecting
+// player now gets an immediate game.view. This test still nudges the hand
+// forward by one action afterward anyway: it's a stronger assertion this
+// way (proves a SUBSEQUENT fan-out also still has the right hidden hand,
+// not just the immediate reconnect one), not a workaround for a gap.
 test('a player who reloads mid-hand resumes the same seat and the same hidden hand', async ({ browser }) => {
   const hostCtx = await browser.newContext();
   const guestCtx = await browser.newContext();

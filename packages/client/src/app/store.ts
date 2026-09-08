@@ -93,7 +93,16 @@ export class AppStore {
         this.set({ room: message.room, screen: screenForRoom(message.room) });
         break;
       case 'error':
-        this.set({ lastError: { code: message.code, message: message.message } });
+        // Overseer addition, found via A11's E2E work: a kicked player
+        // previously stayed on their stale lobby/table screen forever —
+        // nothing reacted to KICKED at all. Room is server-side gone for
+        // this player already (see room-manager.ts's kickPlayer()), so
+        // drop it here too rather than leaving a stale RoomState behind
+        // for screenForRoom() to keep rendering.
+        this.set({
+          lastError: { code: message.code, message: message.message },
+          ...(message.code === 'KICKED' ? { screen: 'menu' as const, room: null } : {}),
+        });
         break;
       case 'game.view':
       case 'game.events':

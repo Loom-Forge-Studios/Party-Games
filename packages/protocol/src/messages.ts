@@ -32,4 +32,11 @@ export type ErrorCode =
   | 'ILLEGAL_ACTION'
   | 'NOT_YOUR_TURN'
   | 'USERNAME_TAKEN'
-  | 'RATE_LIMITED';
+  | 'RATE_LIMITED'
+  // Overseer addition to the frozen contract, found via A11's E2E work:
+  // a kicked player previously received NO notification at all — not
+  // even this — and just sat on a stale screen forever. Sent as an
+  // `error` immediately before the room manager closes their connection
+  // (see rooms/room-manager.ts's kickPlayer()). Purely additive to this
+  // union; does not change any existing message shape.
+  | 'KICKED';

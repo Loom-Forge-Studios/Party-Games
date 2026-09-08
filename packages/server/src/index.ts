@@ -45,9 +45,15 @@ const usernames = new Map<PlayerId, string>();
 // ConnectionManager IS the Transport (see net/connection-manager.ts) — both
 // RoomManagerImpl and HostManager send through this same instance.
 const connectionManager: ConnectionManager = new ConnectionManager({
-  onHello: (playerId, session) => {
+  onHello: (playerId, session, resumed) => {
     usernames.set(playerId, session.username);
     roomManager.setConnected(playerId, true);
+    // Overseer addition, found via A11's E2E work: a reconnecting player
+    // otherwise gets no game state at all until some unrelated action
+    // happens to trigger the next fan-out. `hostManager` is declared below
+    // in this file but only ever called from here once a real 'hello'
+    // arrives, well after both consts are initialized.
+    if (resumed) hostManager.resendViewOnReconnect(playerId);
   },
   onDisconnect: (playerId) => {
     roomManager.setConnected(playerId, false);

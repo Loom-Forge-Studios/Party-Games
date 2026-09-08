@@ -118,6 +118,21 @@ export class GameHost {
     this.clearAllTimers();
   }
 
+  /**
+   * Overseer addition, found via A11's E2E work: resends the current view to one player without
+   * touching events/version — used when a player reconnects mid-game (see net/'s onHello ->
+   * HostManager.resendViewOnReconnect), since previously nothing did this and a reconnecting
+   * player's client had no game state to render until the next unrelated action happened to
+   * trigger a fan-out. Safe to call at any time per the frozen presenter contract's
+   * renderView() being "idempotent... safe to call at any time (reconnect, resize)". No-op for
+   * a player not in this game.
+   */
+  resendViewTo(playerId: PlayerId): void {
+    if (!this.players.some((p) => p.id === playerId)) return;
+    const view = this.module.view(this.state, playerId);
+    this.send(playerId, { t: 'game.view', view, version: this.version });
+  }
+
   private applyAction(playerId: PlayerId, action: unknown): void {
     let result: ReduceResult<unknown>;
     try {

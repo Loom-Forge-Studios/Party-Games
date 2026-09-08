@@ -61,6 +61,18 @@ export class HostManager {
   }
 
   /**
+   * Overseer addition, found via A11's E2E work: call when a player's session resumes (net's
+   * onHello with resumed=true) so a reconnecting player's client gets the current game state
+   * instead of nothing until the next unrelated broadcast. No-op if they're not in a room with
+   * an active game.
+   */
+  resendViewOnReconnect(playerId: PlayerId): void {
+    const roomId = this.roomManager.getRoomOfPlayer(playerId);
+    const host = roomId ? this.hosts.get(roomId) : undefined;
+    host?.resendViewTo(playerId);
+  }
+
+  /**
    * Routes an inbound `game.action` from `playerId` into their room's active GameHost. If the
    * player isn't in a room with an active game, an `error` is sent back instead.
    */
