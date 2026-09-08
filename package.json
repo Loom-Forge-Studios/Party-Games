@@ -1,0 +1,32 @@
+{
+  "name": "party-games",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=26"
+  },
+  "workspaces": [
+    "packages/protocol",
+    "packages/engine",
+    "packages/server",
+    "packages/client",
+    "packages/assets",
+    "packages/games/checkers",
+    "packages/games/holdem",
+    "packages/games/codewords",
+    "e2e"
+  ],
+  "scripts": {
+    "typecheck": "tsc -b tsconfig.json",
+    "test": "vitest run",
+    "build": "tsc -b tsconfig.json",
+    "e2e": "playwright install --with-deps chromium && npm run e2e --workspace=@party/e2e",
+    "dev": "npm run dev --workspace=@party/server"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.4",
+    "@playwright/test": "^1.48.2",
+    "tsx": "^4.19.1"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "name": "@party/client",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Three.js + TS browser client. STUB — app/ (A4), ui/ (A4), table/ (A5), camera/ (A6) are placeholders for later waves.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "engines": {
+    "node": ">=26"
+  },
+  "dependencies": {
+    "@party/protocol": "*",
+    "@party/engine": "*"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "name": "@party/assets",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "STUB — owned by A7 (Wave 1). Will hold placeholder primitive-geometry helpers (Three.js boxes/cylinders/planes for table/disc/card/dice) plus, later, real CC0/original 3D assets recorded in ASSETS.md.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "engines": {
+    "node": ">=26"
+  }
+}
