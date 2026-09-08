@@ -13,8 +13,18 @@ name: docker
 # ops/docker-compose.yml. It does not push anywhere; there's no registry
 # configured for this project (ops/DEPLOY.md's runbook builds the image
 # directly on the deployment box with `docker compose up -d --build`), so
-# this is a build-only smoke check to catch a broken Dockerfile in CI
-# before it's discovered on the mini PC.
+# this is mostly a build-only smoke check to catch a broken Dockerfile in
+# CI before it's discovered on the mini PC.
+#
+# The `runtime` target additionally gets ACTUALLY RUN and health-checked
+# below (overseer addition) — `docker build` alone does not execute a
+# single line of the image, so it never caught a real regression: the
+# server's runtime stage was missing the three @party/game-* packages it
+# imports at startup for their registerGame() side effect (added after
+# this Dockerfile was first written), leaving dangling node_modules
+# symlinks that only failed at container start, past every build-only
+# check that existed. `docker build` succeeding is necessary but not
+# sufficient for this image; this closes that gap.
 
 on:
   push:
@@ -39,7 +49,49 @@ jobs:
           file: ops/Dockerfile
           target: ${{ matrix.target }}
           push: false
+          # Only the runtime image needs to be loaded into the local
+          # daemon (to actually `docker run` it below); the caddy target
+          # is still build-only, same as before.
+          load: ${{ matrix.target == 'runtime' }}
+          tags: party-games-${{ matrix.target }}:ci
           # GHA's own cache backend — free, scoped to this repo, no
           # registry credentials needed.
           cache-from: type=gha,scope=${{ matrix.target }}
           cache-to: type=gha,mode=max,scope=${{ matrix.target }}
+
+      - name: smoke-run (runtime only)
+        if: matrix.target == 'runtime'
+        run: |
+          docker run -d --name smoke -p 18080:8080 -e PORT=8080 party-games-runtime:ci
+          for i in $(seq 1 20); do
+            if curl -sf http://localhost:18080/healthz > /dev/null; then echo "healthy"; break; fi
+            if [ "$i" = "20" ]; then echo "never became healthy"; docker logs smoke; exit 1; fi
+            sleep 1
+          done
+          # A real WebSocket round trip, not just the HTTP health check —
+          # this is what actually exercises the game registry import that
+          # broke silently past `docker build` alone (see this file's top
+          # comment). `ws` isn't otherwise installed in this docker-only
+          # job (it never runs `npm ci`), so grab just that one package
+          # into a scratch dir rather than touching the repo's own lockfile.
+          mkdir -p /tmp/ws-smoke && npm install --no-save --prefix /tmp/ws-smoke ws@8
+          NODE_PATH=/tmp/ws-smoke/node_modules node -e '
+            const WebSocket = require("ws");
+            const ws = new WebSocket("ws://localhost:18080/ws");
+            const msgs = [];
+            ws.on("message", (d) => msgs.push(JSON.parse(d.toString())));
+            ws.on("open", () => {
+              ws.send(JSON.stringify({ t: "hello", username: "ci-smoke" }));
+              setTimeout(() => ws.send(JSON.stringify({ t: "room.create", gameId: "checkers", maxPlayers: 2 })), 300);
+            });
+            setTimeout(() => {
+              const room = msgs.find((m) => m.t === "room.state");
+              if (!room || room.room.gameId !== "checkers") {
+                console.error("room.create over a real WebSocket did not come back as expected:", JSON.stringify(msgs));
+                process.exit(1);
+              }
+              console.log("real WebSocket round trip through the container OK");
+              process.exit(0);
+            }, 1000);
+          ' || { docker logs smoke; exit 1; }
+          docker rm -f smoke

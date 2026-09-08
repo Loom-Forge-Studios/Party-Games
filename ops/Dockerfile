@@ -81,6 +81,29 @@ COPY --from=build /app/packages/protocol/dist ./packages/protocol/dist
 COPY --from=build /app/packages/engine/package.json ./packages/engine/package.json
 COPY --from=build /app/packages/engine/dist ./packages/engine/dist
 
+# Overseer fix: the server now imports these three at startup, purely for
+# their registerGame() side effect (see packages/server/src/index.ts) —
+# added after this Dockerfile was originally written, so they were missing
+# here. Without them, node_modules/@party/game-* (present from the `build`
+# stage's npm ci, since they're real workspace deps of @party/server) are
+# dangling symlinks into packages/games/* directories this stage never
+# copied — `docker build` still succeeds (nothing resolves the symlink at
+# build time), but the container crashes on its first real request, past
+# `docker build`-only CI checks and the HEALTHCHECK's own startup window.
+# Each package's "." export (index.ts) only ever imports @party/engine
+# (already above) and its own module.ts — @party/presenter/three are real
+# package.json dependencies (needed to type-check presenter.ts, which lives
+# in the same TS project) but presenter.ts itself is never imported
+# server-side, so nothing here needs to resolve them at runtime.
+COPY --from=build /app/packages/games/checkers/package.json ./packages/games/checkers/package.json
+COPY --from=build /app/packages/games/checkers/dist ./packages/games/checkers/dist
+
+COPY --from=build /app/packages/games/holdem/package.json ./packages/games/holdem/package.json
+COPY --from=build /app/packages/games/holdem/dist ./packages/games/holdem/dist
+
+COPY --from=build /app/packages/games/codewords/package.json ./packages/games/codewords/package.json
+COPY --from=build /app/packages/games/codewords/dist ./packages/games/codewords/dist
+
 COPY --from=build /app/packages/server/package.json ./packages/server/package.json
 COPY --from=build /app/packages/server/dist ./packages/server/dist
 
