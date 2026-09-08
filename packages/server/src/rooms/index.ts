@@ -1,13 +1,14 @@
-// STUB ONLY — owned by A2 (Wave 1).
+// Owned by A2 (Wave 1).
 //
-// Will hold: the room manager — create/join/leave/kick, room code
-// generation (@party/protocol generateRoomId), RoomState (@party/protocol)
-// bookkeeping, and translating room.* ClientMessages into RoomState updates
-// broadcast as room.state ServerMessages.
+// Room manager: create/join/leave/kick, room code generation
+// (@party/protocol generateRoomId), RoomState (@party/protocol) bookkeeping,
+// host powers (kick/config/start), player-limit clamping against the
+// selected game's meta, and seat compaction.
 //
-// Do not build real behaviour here outside of Wave 1 — this file exists so
-// the package compiles and later agents have a starting point.
-
-export const ROOMS_STUB = true;
+// packages/server/src/index.ts (nobody's job this wave — see that file's
+// comment) is where a real RoomManagerImpl gets constructed with a real
+// Transport and wired to net's ClientMessage handling.
 
 export type { RoomManager } from './manager.js';
+export { RoomManagerImpl } from './room-manager.js';
+export type { RoomResult } from './room-manager.js';
