@@ -23,6 +23,17 @@ import { mapSeatsToPages, playCheckersToGameOver } from '../support/checkers-bot
 // support/checkers-bot.ts and support/ws-capture.ts for why this is
 // "driving the real connection", not a mock).
 test('two players create/join/start a full Checkers game and reach game.over', async ({ browser }) => {
+  // Overseer fix: a real self-play run of this deterministic game (see
+  // checkers-bot.ts's header comment — Checkers has zero randomness, so
+  // this is always exactly 45 plies) took ~56s wall-clock in one CI run
+  // against the global 60s timeout and tipped over it in another — not a
+  // stuck-game bug (playCheckersToGameOver's own maxPlies guard already
+  // catches that class of failure and throws a distinct error), just the
+  // harness's patience with real per-ply round-trip time under CI's
+  // shared/noisy-neighbor scheduling. Raised with headroom rather than
+  // widening any in-test assertion.
+  test.setTimeout(180_000);
+
   const hostCtx = await browser.newContext();
   const guestCtx = await browser.newContext();
   const hostPage = await hostCtx.newPage();
