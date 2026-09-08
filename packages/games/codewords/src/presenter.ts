@@ -9,20 +9,10 @@
 // so they're testable headlessly. See this package's package.json.
 
 import * as THREE from 'three';
-import type { PresenterCtx } from '@party/client';
-import type { GameEvent } from '@party/engine';
-import type { GameId } from '@party/protocol';
+import type { PresenterCtx, GamePresenter } from '@party/presenter';
+import type { GameEvent, GameId } from '@party/protocol';
 import { GRID_SIZE } from './module.js';
 import type { CodewordsView, CodewordsTileView, TileColor } from './module.js';
-
-/** Same shape as docs/ARCHITECTURE.md §6's GamePresenter — no shared type to import yet (see this wave's brief), so it's satisfied structurally here. */
-export interface GamePresenter<V = unknown> {
-  gameId: GameId;
-  mount(ctx: PresenterCtx): Promise<void>;
-  renderView(view: V): void;
-  playEvent(ev: GameEvent): Promise<void>;
-  unmount(): void;
-}
 
 const TILE_SIZE = 0.15;
 const TILE_GAP = 0.02;

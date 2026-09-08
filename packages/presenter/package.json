@@ -1,0 +1,20 @@
+{
+  "name": "@party/presenter",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Overseer-extracted leaf package: the presenter-facing type contracts (PresenterCtx, CameraDirector, SeatLayout, GamePresenter). Exists so @party/client (which builds these) and every packages/games/* presenter (which implements against them) can both depend on the SAME types without a circular package/project-reference dependency — see this package's src/index.ts header comment for the full story.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "engines": {
+    "node": ">=26"
+  },
+  "dependencies": {
+    "@party/protocol": "*",
+    "@party/assets": "*",
+    "three": "^0.186.0"
+  },
+  "devDependencies": {
+    "@types/three": "^0.185.4"
+  }
+}

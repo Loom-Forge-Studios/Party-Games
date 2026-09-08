@@ -7,12 +7,37 @@
 
 import { describe, it, expect } from 'vitest';
 import * as THREE from 'three';
-import { createPresenterCtx, type PresenterCtx } from '@party/client';
-import type { CameraDirector, CameraPose } from '@party/client';
+import type { PresenterCtx, CameraDirector, CameraPose, SeatLayout } from '@party/presenter';
+import type { AssetLoader } from '@party/assets';
 import { createRng } from '@party/engine';
-import type { FocusHint } from '@party/engine';
+import type { FocusHint } from '@party/protocol';
 import { codewordsModule, GRID_SIZE, type CodewordsView } from './module.js';
 import { CodewordsPresenter } from './presenter.js';
+
+/** Trivial fake — always resolves to a bare Object3D, matching AssetLoader's "never rejects" contract without needing the real procedural placeholder kit for a presenter-only test. */
+class FakeAssetLoader implements AssetLoader {
+  async load(): Promise<unknown> {
+    return new THREE.Object3D();
+  }
+}
+
+/** Hand-built seats instead of @party/client's computeSeatLayout(), to avoid a dependency on @party/client from this package (which would be circular — see docs/ARCHITECTURE.md / packages/presenter's header comment). This presenter doesn't touch seat.avatar. */
+function buildSeats(count: number): SeatLayout[] {
+  const seats: SeatLayout[] = [];
+  for (let seat = 0; seat < count; seat++) {
+    const angle = (seat / count) * Math.PI * 2;
+    const x = Math.sin(angle) * 2.1;
+    const z = Math.cos(angle) * 2.1;
+    seats.push({
+      seat,
+      position: { x, y: 0, z },
+      rotationY: 0,
+      avatar: new THREE.Group(),
+      cameraPose: { position: { x, y: 1.55, z }, target: { x: 0, y: 0.4, z: 0 } },
+    });
+  }
+  return seats;
+}
 
 function makePlayers(n: number) {
   return Array.from({ length: n }, (_, i) => ({
@@ -42,12 +67,17 @@ function buildViewFor(seat: number): { view: CodewordsView; ctx: PresenterCtx; c
   const view = codewordsModule.view(state, `p${seat}`);
   const camera = createFakeCameraDirector();
   const emitted: unknown[] = [];
-  const ctx = createPresenterCtx({
-    seatCount: 4,
+  const seats = buildSeats(4);
+  camera.setHome(seats[seat].cameraPose);
+  const ctx: PresenterCtx = {
+    scene: new THREE.Scene(),
+    table: new THREE.Object3D(),
+    seats,
     localSeat: seat,
+    assets: new FakeAssetLoader(),
     camera,
     emit: (action) => emitted.push(action),
-  });
+  };
   return { view, ctx, camera, emitted };
 }
 
@@ -107,7 +137,17 @@ describe('CodewordsPresenter smoke tests', () => {
     const view = codewordsModule.view(state, guesserId);
     const camera = createFakeCameraDirector();
     const emitted: unknown[] = [];
-    const ctx = createPresenterCtx({ seatCount: 4, localSeat: guesserSeat, camera, emit: (a) => emitted.push(a) });
+    const seats = buildSeats(4);
+    camera.setHome(seats[guesserSeat].cameraPose);
+    const ctx: PresenterCtx = {
+      scene: new THREE.Scene(),
+      table: new THREE.Object3D(),
+      seats,
+      localSeat: guesserSeat,
+      assets: new FakeAssetLoader(),
+      camera,
+      emit: (a) => emitted.push(a),
+    };
 
     const presenter = new CodewordsPresenter();
     await presenter.mount(ctx);

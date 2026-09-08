@@ -1,25 +1,11 @@
 // Owned by A5 (Wave 1). See docs/ARCHITECTURE.md §6 "The presenter contract"
-// for the frozen shape of PresenterCtx — SeatLayout itself isn't specified
-// there beyond "world transforms, index === seat number", so its concrete
-// fields are A5's call.
+// for the frozen shape of PresenterCtx.
+//
+// SeatLayout's canonical definition now lives in @party/presenter (moved
+// there by the overseer after Wave 2 — see that package's src/index.ts for
+// why: it broke a circular dependency between @party/client and the game
+// packages). Re-exported here so every existing import of
+// `from '../table/types.js'` / `from '@party/client'` keeps working
+// unchanged.
 
-import type * as THREE from 'three';
-import type { CameraPose } from '../camera/director.js';
-
-/** One seat around the table. `seats[i].seat === i` always holds. */
-export interface SeatLayout {
-  /** 0..n-1 — this seat's index, and its position in the owning SeatLayout[]. */
-  seat: number;
-  /** World-space position of the seat (where the avatar stands). */
-  position: { x: number; y: number; z: number };
-  /** Yaw, radians, facing the table centre. */
-  rotationY: number;
-  /**
-   * Placeholder body (capsule + nameplate) for this seat, already positioned
-   * and rotated at the seat's world transform. Real per-player models are
-   * A7's later work — see PresenterCtx.assets.
-   */
-  avatar: THREE.Object3D;
-  /** Over-the-shoulder home camera pose for this seat, looking at table centre. */
-  cameraPose: CameraPose;
-}
+export type { SeatLayout } from '@party/presenter';

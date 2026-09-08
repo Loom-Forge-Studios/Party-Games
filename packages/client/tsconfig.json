@@ -5,5 +5,13 @@
     "rootDir": "src"
   },
   "include": ["src"],
-  "references": [{ "path": "../protocol" }, { "path": "../engine" }, { "path": "../assets" }]
+  "references": [
+    { "path": "../protocol" },
+    { "path": "../engine" },
+    { "path": "../assets" },
+    { "path": "../presenter" },
+    { "path": "../games/checkers" },
+    { "path": "../games/holdem" },
+    { "path": "../games/codewords" }
+  ]
 }

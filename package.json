@@ -11,6 +11,7 @@
     "packages/server",
     "packages/client",
     "packages/assets",
+    "packages/presenter",
     "packages/games/checkers",
     "packages/games/holdem",
     "packages/games/codewords",
@@ -21,7 +22,7 @@
     "test": "vitest run",
     "build": "tsc -b tsconfig.json",
     "e2e": "playwright install --with-deps chromium && npm run e2e --workspace=@party/e2e",
-    "dev": "npm run dev --workspace=@party/server"
+    "dev": "npm run dev --workspace=@party/server & npm run dev --workspace=@party/client & wait"
   },
   "devDependencies": {
     "typescript": "^5.6.3",

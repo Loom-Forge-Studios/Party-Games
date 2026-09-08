@@ -6,13 +6,24 @@
   "description": "Hold'em poker rules module. STUB — owned by A9 (Wave 2). Rule modules must not import Three.js.",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./presenter": {
+      "types": "./dist/presenter.d.ts",
+      "default": "./dist/presenter.js"
+    }
+  },
   "engines": {
     "node": ">=26"
   },
   "dependencies": {
-    "@party/protocol": "*",
+    "@party/assets": "^0.1.0",
     "@party/engine": "*",
-    "@party/client": "*",
+    "@party/presenter": "^0.1.0",
+    "@party/protocol": "*",
     "three": "^0.186.0"
   },
   "devDependencies": {

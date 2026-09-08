@@ -9,31 +9,19 @@
 // (including this package's own tests, and Wave 2 once it starts) aren't
 // blocked; `camera` has no safe default (it drives the actual view) and
 // must always be supplied by the caller.
+//
+// PresenterCtx's canonical definition now lives in @party/presenter (moved
+// there by the overseer after Wave 2 to break a circular dependency between
+// @party/client and the game packages — see that package's src/index.ts).
+// Re-exported below for source compatibility.
 
-import type * as THREE from 'three';
 import type { AssetLoader } from '@party/assets';
-import type { CameraDirector } from '../camera/director.js';
-import type { SeatLayout } from './types.js';
+import type { CameraDirector, PresenterCtx } from '@party/presenter';
 import { createScene } from './scene.js';
 import { computeSeatLayout, type SeatLayoutOptions } from './seat-layout.js';
 import { PlaceholderAssetLoader } from './placeholder-asset-loader.js';
 
-/**
- * Frozen shape, reproduced from docs/ARCHITECTURE.md §6. Defined here (not
- * imported from anywhere) because packages/client/src/table/ is where the
- * doc says it lands once A5 formalizes it.
- */
-export interface PresenterCtx {
-  scene: THREE.Scene;
-  table: THREE.Object3D;
-  /** World transforms, index === seat number. */
-  seats: SeatLayout[];
-  localSeat: number;
-  assets: AssetLoader;
-  camera: CameraDirector;
-  /** User intent -> server. */
-  emit(action: unknown): void;
-}
+export type { PresenterCtx } from '@party/presenter';
 
 export interface CreatePresenterCtxOptions {
   seatCount: number;

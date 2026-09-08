@@ -7,11 +7,11 @@
 // cannot cover.
 
 import * as THREE from 'three';
-
-export const TABLE_RADIUS = 1.3;
-export const TABLE_HEIGHT = 0.08;
-/** World-space Y of the table's playing surface — pieces sit at/above this. */
-export const TABLE_SURFACE_Y = TABLE_HEIGHT;
+// Canonical values now live in @party/presenter (overseer, post-Wave-2) so
+// a game presenter can use them without depending on @party/client — see
+// that package's src/index.ts. Re-exported here for source compatibility.
+import { TABLE_RADIUS, TABLE_HEIGHT, TABLE_SURFACE_Y } from '@party/presenter';
+export { TABLE_RADIUS, TABLE_HEIGHT, TABLE_SURFACE_Y };
 
 /** The table mesh, centred at the origin, receiving shadows from seat avatars and pieces. */
 export function createTable(): THREE.Object3D {

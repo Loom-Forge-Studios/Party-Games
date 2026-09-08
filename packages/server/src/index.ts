@@ -16,6 +16,18 @@ import { ConnectionManager, attachToWebSocketServer } from './net/index.js';
 import { RoomManagerImpl } from './rooms/index.js';
 import { HostManager } from './host/index.js';
 
+// Registers each real GameModule into @party/engine's shared registry via
+// its own registerGame() side effect, overwriting the trivial Wave-1
+// stubs. Each package's "." export is deliberately rules-only (no Three.js
+// / @party/client) — see each game's own package.json "exports" map and
+// index.ts header comment — so this is safe to import into a plain Node
+// process. Nobody in Wave 2 owned this import; without it the server would
+// keep running the built-in do-nothing stubs forever (see engine/src/
+// registry.ts) even after real rules were merged.
+import '@party/game-checkers';
+import '@party/game-holdem';
+import '@party/game-codewords';
+
 const PORT = Number(process.env.PORT ?? 8080);
 
 const httpServer = createServer((req, res) => {

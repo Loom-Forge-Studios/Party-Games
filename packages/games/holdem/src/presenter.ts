@@ -9,20 +9,11 @@
 // unmount — the same `el`/`clear` DOM helper the rest of the client uses.
 
 import * as THREE from 'three';
-import type { PresenterCtx } from '@party/client';
-import { TABLE_SURFACE_Y, el, clear } from '@party/client';
-import type { GameEvent } from '@party/engine';
+import type { PresenterCtx, GamePresenter } from '@party/presenter';
+import { TABLE_SURFACE_Y, el, clear } from '@party/presenter';
+import type { GameEvent } from '@party/protocol';
 import { cardAssetKey } from './deck.js';
 import type { HoldemAction, HoldemView } from './state.js';
-
-/** Reproduced locally per docs/ARCHITECTURE.md §6 — no shared GamePresenter type exists yet. */
-export interface GamePresenter<V = unknown> {
-  gameId: string;
-  mount(ctx: PresenterCtx): Promise<void>;
-  renderView(view: V): void;
-  playEvent(ev: GameEvent): Promise<void>;
-  unmount(): void;
-}
 
 const HOLE_CARD_DISTANCE_RATIO = 0.42; // fraction of the way from table centre toward the seat
 const HOLE_CARD_GAP = 0.16;

@@ -17,6 +17,10 @@
   "dependencies": {
     "@party/assets": "^0.1.0",
     "@party/engine": "*",
+    "@party/game-checkers": "^0.1.0",
+    "@party/game-codewords": "^0.1.0",
+    "@party/game-holdem": "^0.1.0",
+    "@party/presenter": "*",
     "@party/protocol": "*",
     "three": "^0.186.0"
   },

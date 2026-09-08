@@ -1,25 +1,11 @@
-import type { FocusHint } from '@party/engine';
+// Owned by A6 (Wave 1).
+//
+// CameraDirector/CameraPose's canonical definitions now live in
+// @party/presenter (moved there by the overseer after Wave 2 — see that
+// package's src/index.ts for why: it broke a circular dependency between
+// @party/client and the game packages). Re-exported here so every existing
+// import of `from '../camera/director.js'` / `from '@party/client'` keeps
+// working unchanged. `ThreeCameraDirector` (CameraDirector.ts) is the real
+// implementation and is unaffected by this move.
 
-export interface CameraPose {
-  position: { x: number; y: number; z: number };
-  target: { x: number; y: number; z: number };
-}
-
-/**
- * The seam between the camera director (A6) and the table/presenter layer
- * (A5, and later every game presenter in Wave 2). A6 implements a real class
- * satisfying this; A5 only needs the type to assemble PresenterCtx.camera.
- *
- * Frozen for Wave 1 by the overseer for the same reason as Transport
- * (packages/server/src/net/transport.ts) — enables true parallel build.
- */
-export interface CameraDirector {
-  /** Ease toward the hinted target, dwell holdMs, then ease back home. Requests queue; 'high' priority preempts. */
-  focus(hint: FocusHint): Promise<void>;
-  /** Ease back to the local player's seat pose. */
-  home(): Promise<void>;
-  /** Sets the pose 'home' eases back to — typically the local player's seat, from SeatLayout. */
-  setHome(pose: CameraPose): void;
-  /** Immediate cut, no easing — used for prefers-reduced-motion and first mount. */
-  snap(): void;
-}
+export type { CameraDirector, CameraPose } from '@party/presenter';

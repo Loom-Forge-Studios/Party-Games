@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 import * as THREE from 'three';
 import { describe, expect, it } from 'vitest';
-import { createScene, PlaceholderAssetLoader, type CameraDirector, type PresenterCtx, type SeatLayout } from '@party/client';
-import type { FocusHint, GameEvent } from '@party/engine';
+import type { CameraDirector, PresenterCtx, SeatLayout } from '@party/presenter';
+import type { AssetLoader } from '@party/assets';
+import type { FocusHint, GameEvent } from '@party/protocol';
 import { HoldemPresenter } from './presenter.js';
 import type { HoldemView } from './state.js';
 
@@ -41,8 +42,16 @@ function buildSeats(count: number): SeatLayout[] {
   return seats;
 }
 
+/** Trivial fake — always resolves to a bare Object3D, matching AssetLoader's "never rejects" contract without needing the real procedural placeholder kit for a presenter-only test. */
+class FakeAssetLoader implements AssetLoader {
+  async load(): Promise<unknown> {
+    return new THREE.Object3D();
+  }
+}
+
 function buildCtx(): { ctx: PresenterCtx; camera: FakeCameraDirector; emitted: unknown[] } {
-  const { scene, table } = createScene();
+  const scene = new THREE.Scene();
+  const table = new THREE.Object3D();
   const seats = buildSeats(3);
   const camera = new FakeCameraDirector();
   const emitted: unknown[] = [];
@@ -51,7 +60,7 @@ function buildCtx(): { ctx: PresenterCtx; camera: FakeCameraDirector; emitted: u
     table,
     seats,
     localSeat: 0,
-    assets: new PlaceholderAssetLoader(),
+    assets: new FakeAssetLoader(),
     camera,
     emit: (action) => emitted.push(action),
   };

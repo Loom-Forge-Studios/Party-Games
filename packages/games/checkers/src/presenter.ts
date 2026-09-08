@@ -17,9 +17,8 @@
 // authoritative"). Nothing about correctness depends on this working.
 
 import * as THREE from 'three';
-import type { PresenterCtx } from '@party/client';
-import type { GameEvent } from '@party/engine';
-import type { GameId } from '@party/protocol';
+import type { PresenterCtx, GamePresenter } from '@party/presenter';
+import type { GameId, GameEvent } from '@party/protocol';
 import * as B from './board.js';
 import { CELL_SIZE, DISC_HEIGHT, TABLE_SURFACE_Y, squareToWorld } from './layout.js';
 import type {
@@ -31,19 +30,6 @@ import type {
   PieceCrownedPayload,
   PieceMovedPayload,
 } from './module.js';
-
-/**
- * Local restatement of docs/ARCHITECTURE.md §6's GamePresenter shape —
- * there is no shared type to import yet (every Wave 2 game defines its own,
- * per the brief).
- */
-export interface GamePresenter<V = unknown> {
-  gameId: GameId;
-  mount(ctx: PresenterCtx): Promise<void>;
-  renderView(view: V): void;
-  playEvent(ev: GameEvent): Promise<void>;
-  unmount(): void;
-}
 
 const TILE_HEIGHT = 0.01;
 const DARK_TILE_COLOR = 0x4a3323;

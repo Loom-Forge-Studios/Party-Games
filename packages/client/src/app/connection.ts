@@ -33,7 +33,7 @@ export interface WebSocketLike {
 
 export type WebSocketFactory = (url: string) => WebSocketLike;
 
-/** Minimal storage shape (matches `Storage`) so tests can inject a fake in place of `localStorage`. */
+/** Minimal storage shape (matches `Storage`) so tests can inject a fake in place of `sessionStorage`. */
 export interface KeyValueStorage {
   getItem(key: string): string | null;
   setItem(key: string, value: string): void;
@@ -87,7 +87,7 @@ export class Connection {
     this.url = opts.url;
     this.username = opts.username ?? '';
     this.wsFactory = opts.wsFactory ?? defaultWsFactory;
-    this.storage = opts.storage === undefined ? safeLocalStorage() : opts.storage;
+    this.storage = opts.storage === undefined ? safeSessionStorage() : opts.storage;
     this.minBackoffMs = opts.minBackoffMs ?? 500;
     this.maxBackoffMs = opts.maxBackoffMs ?? 10_000;
   }
@@ -239,11 +239,24 @@ function defaultWsFactory(url: string): WebSocketLike {
   return new WebSocket(url) as unknown as WebSocketLike;
 }
 
-function safeLocalStorage(): KeyValueStorage | null {
+/**
+ * Overseer fix, found via live two-tab testing: `sessionStorage`, not
+ * `localStorage`. `localStorage` is shared across every same-origin tab, so
+ * two tabs of the same browser (a realistic dev/testing pattern, and a
+ * plausible accidental real-user one) raced to claim the same resumeToken
+ * — each tab's `hello` evicted the other's live socket
+ * ("replaced by reconnect", see net/connection-manager.ts), and each
+ * eviction triggered that tab's own reconnect, producing an unbounded
+ * connect/close storm between the two tabs. `sessionStorage` is scoped per
+ * tab (surviving reload and backgrounding, same as before) without being
+ * shared across tabs, which is what the 90s resume window's "the same
+ * client reconnecting" semantics actually call for.
+ */
+function safeSessionStorage(): KeyValueStorage | null {
   try {
-    if (typeof localStorage !== 'undefined') return localStorage;
+    if (typeof sessionStorage !== 'undefined') return sessionStorage;
   } catch {
-    // Accessing localStorage can throw (e.g. sandboxed iframe).
+    // Accessing sessionStorage can throw (e.g. sandboxed iframe).
   }
   return null;
 }

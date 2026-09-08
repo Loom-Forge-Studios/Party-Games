@@ -8,7 +8,7 @@
 
 import { describe, expect, it, vi } from 'vitest';
 import * as THREE from 'three';
-import type { PresenterCtx } from '@party/client';
+import type { PresenterCtx } from '@party/presenter';
 import { createRng } from '@party/engine';
 import * as B from './board.js';
 import { checkersModule, type CheckersView } from './module.js';

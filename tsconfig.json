@@ -4,6 +4,7 @@
     { "path": "packages/protocol" },
     { "path": "packages/engine" },
     { "path": "packages/assets" },
+    { "path": "packages/presenter" },
     { "path": "packages/server" },
     { "path": "packages/client" },
     { "path": "packages/games/checkers" },

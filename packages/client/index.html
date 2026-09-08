@@ -16,13 +16,26 @@
     <div id="app-ui"></div>
     <script type="module">
       import { bootstrapDefault } from '/src/app/index.ts';
+      import { mountTable } from '/src/app/table-mount.ts';
 
       const root = document.getElementById('app-ui');
-      // onTableHandoff is left unset here — wiring it to actually mount the
-      // 3D table + game presenter (A5/A6 + a game's GamePresenter) is the
-      // overseer's cross-cutting integration step (see docs/ARCHITECTURE.md
-      // and this package's own STUB comments in table/ and camera/).
-      bootstrapDefault(root);
+      const canvasContainer = document.getElementById('app-canvas');
+
+      // Overseer integration: mounts the real 3D table + the room's game
+      // presenter on every lobby->table handoff, and unmounts cleanly if a
+      // second handoff happens (e.g. leaving one game and starting another
+      // in the same tab). See app/table-mount.ts for why this wiring lives
+      // here rather than in any single wave's ownership.
+      let mounted = null;
+      bootstrapDefault(root, async (room, { connection, store }) => {
+        mounted?.unmount();
+        mounted = null;
+        try {
+          mounted = await mountTable({ canvasContainer, room, connection, store });
+        } catch (err) {
+          console.error('[table-mount] failed to mount game presenter', err);
+        }
+      });
     </script>
   </body>
 </html>
