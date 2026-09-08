@@ -1,0 +1,57 @@
+# Party-Games — Caddy reverse proxy + static site config.
+#
+# ${DOMAIN} is read from the environment (see ops/.env.example / DEPLOY.md).
+# When it's unset, `:localhost` is used instead — Caddy issues itself a
+# locally-trusted (not publicly valid) certificate for "localhost" rather
+# than attempting ACME, which is convenient for a local `docker compose up`
+# smoke test but is NOT what you want for a real deployment. Set DOMAIN to a
+# real, publicly resolvable domain to get a real Let's Encrypt certificate.
+{$DOMAIN:localhost} {
+	encode gzip zstd
+
+	# Each route below is wrapped in its own `handle` block. This is not
+	# decorative: Caddy does NOT run directives in the order they're
+	# written in this file — it reorders them into a fixed internal
+	# priority where `try_files` (below) runs BEFORE `reverse_proxy`
+	# regardless of source order, so a bare (un-`handle`d) try_files would
+	# rewrite every request — including /healthz and /ws — to /index.html
+	# before the reverse_proxy matchers ever saw them, and this static
+	# page would silently swallow both. `handle` blocks are mutually
+	# exclusive and evaluated in the order written, which is exactly the
+	# documented fix for combining try_files with reverse_proxy. Verified
+	# by hand: pre-`handle`, `curl https://localhost/healthz` returned the
+	# client's index.html (HTTP 200, wrong body) instead of the app's
+	# "ok".
+
+	# --- /healthz: proxied through so an external uptime monitor can hit
+	# the app's health check over the same domain/port it monitors
+	# everything else on, without needing a separate port opened.
+	handle /healthz {
+		reverse_proxy app:8080
+	}
+
+	# --- /ws: the game server's WebSocket endpoint (see
+	# packages/server/src/index.ts — WebSocketServer is mounted at path
+	# "/ws"). Caddy's reverse_proxy detects the Upgrade request and
+	# switches to a raw byte-for-byte proxy on its own, but the
+	# Connection/Upgrade headers are forwarded explicitly here rather than
+	# relying on that default, per the deploy spec.
+	handle /ws {
+		reverse_proxy app:8080 {
+			header_up Host {host}
+			header_up Connection {http.request.header.Connection}
+			header_up Upgrade {http.request.header.Upgrade}
+		}
+	}
+
+	# --- everything else: the static client build (Vite output, baked
+	# into this image at build time — see ops/Dockerfile's `caddy` stage).
+	# try_files falls back to /index.html for any path that isn't a real
+	# static asset, so client-side routing (if the client ever adds any)
+	# doesn't 404 on refresh.
+	handle {
+		root * /srv/client-static
+		try_files {path} /index.html
+		file_server
+	}
+}

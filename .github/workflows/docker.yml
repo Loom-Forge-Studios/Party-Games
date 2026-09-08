@@ -1,0 +1,45 @@
+name: docker
+
+# Separate from ci.yml on purpose: ci.yml's step list (install, typecheck,
+# test, build, e2e) is an INVARIANT that must stay byte-for-byte in sync
+# with justfile's `verify` recipe (see the comment at the top of that
+# file and of ci.yml) — this workflow is deliberately NOT part of that
+# list, so it can change independently without touching the file that
+# invariant governs.
+#
+# What this validates: that ops/Dockerfile still builds, for both targets
+# it defines (the `runtime` app image and the `caddy` image with the
+# static client bundle baked in) — see ops/Dockerfile and
+# ops/docker-compose.yml. It does not push anywhere; there's no registry
+# configured for this project (ops/DEPLOY.md's runbook builds the image
+# directly on the deployment box with `docker compose up -d --build`), so
+# this is a build-only smoke check to catch a broken Dockerfile in CI
+# before it's discovered on the mini PC.
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    name: docker build (${{ matrix.target }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target: [runtime, caddy]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ops/Dockerfile
+          target: ${{ matrix.target }}
+          push: false
+          # GHA's own cache backend — free, scoped to this repo, no
+          # registry credentials needed.
+          cache-from: type=gha,scope=${{ matrix.target }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.target }}
