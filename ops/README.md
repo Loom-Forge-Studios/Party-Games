@@ -1,12 +1,25 @@
 # ops
 
-STUB ONLY — owned by A13 (later wave). Not an npm workspace.
+Owned by A13. Deployment tooling for the Ubuntu mini PC target.
 
-Will hold deployment tooling for the Ubuntu mini PC target: a Caddy
-reverse-proxy config (TLS termination, WSS upgrade to the `@party/server`
-process), a systemd unit (or equivalent) to keep the server running and
-restart on failure, and a deploy script. Keep it lightweight — this runs on
-modest hardware, so no container orchestration, no reverse-proxy-in-front-
-of-reverse-proxy layering.
+- [`Dockerfile`](./Dockerfile) — multi-stage build (compile stage, then a
+  slim `runtime` target for the app and a `caddy` target with the static
+  client bundle baked in). See the file's own header comment for the full
+  layout.
+- [`docker-compose.yml`](./docker-compose.yml) — the `app` service (built
+  from `Dockerfile`'s `runtime` target) and a `caddy` service (TLS
+  termination, static file serving, reverse proxy — built from the same
+  `Dockerfile`'s `caddy` target), with resource limits sized for modest
+  hardware.
+- [`Caddyfile`](./Caddyfile) — automatic Let's Encrypt TLS for `${DOMAIN}`,
+  reverse-proxies `/ws` (with WebSocket upgrade headers) and `/healthz` to
+  the app, serves the static client build for everything else.
+- [`.env.example`](./.env.example) — copy to `.env` and set `DOMAIN`.
+- [`DEPLOY.md`](./DEPLOY.md) — the actual runbook: DNS, ports, cloning,
+  bringing it up, logs, updates, and why there's no backup procedure (v1
+  has no persistent data).
 
-Do not build real behaviour here outside of the wave that owns it.
+Run it with `docker compose -f ops/docker-compose.yml up -d` — see
+`DEPLOY.md` for the full sequence. No systemd unit: containers +
+`restart: unless-stopped` cover "keep it running / restart on failure"
+without a second layer of process supervision on top of Docker's own.

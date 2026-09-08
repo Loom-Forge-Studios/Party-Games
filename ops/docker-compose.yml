@@ -1,0 +1,112 @@
+# Party-Games — deployment compose file.
+#
+# Run this from anywhere with:
+#   docker compose -f ops/docker-compose.yml up -d
+# (see ops/DEPLOY.md for the full runbook — DNS, ports, DOMAIN, updates).
+# `build.context: ..` below is this file's own directory (ops/) resolved
+# up one level to the repo root — Compose always resolves a relative build
+# context against the compose file's own location, not the caller's cwd,
+# so this works the same way regardless of where `docker compose` is
+# invoked from. The repo root is needed as the build context (rather than
+# ops/ itself) because this is an npm-workspaces monorepo: the Dockerfile
+# has to COPY the whole packages/ tree to resolve the server's workspace
+# dependencies (@party/protocol, @party/engine) — see ops/Dockerfile's top
+# comment.
+#
+# Two services: `app` (this repo's Node server, built by ops/Dockerfile's
+# `runtime` target) and `caddy` (TLS termination + static file serving +
+# reverse proxy, built by the same Dockerfile's `caddy` target — see that
+# file for why the client's static bundle is baked into the Caddy image
+# rather than shared over a volume).
+
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: ops/Dockerfile
+      target: runtime
+    image: party-games-app:local
+    restart: unless-stopped
+    environment:
+      # packages/server/src/index.ts reads PORT directly from the
+      # environment (`Number(process.env.PORT ?? 8080)`) — 8080 is already
+      # its own default, set explicitly here so it's not a silent implicit
+      # dependency between this file and that source default.
+      - PORT=8080
+    # No ports published to the host: only `caddy` needs to reach this
+    # service, over the internal compose network at app:8080 (see
+    # ops/Caddyfile's reverse_proxy targets). Nothing external should be
+    # able to reach the app container directly, bypassing TLS.
+    expose:
+      - '8080'
+    # v1 has no persistent data (rooms are in-memory, see ops/DEPLOY.md's
+    # "Backups" section) — no volumes needed here.
+    #
+    # Resource limits: a self-hosted friend-group service on a mini PC, not
+    # a hyperscale deployment. Node's own baseline (V8 heap + the `ws`
+    # server) idles well under 100MB; everything this process holds beyond
+    # that is in-memory room/session state for a handful of concurrent
+    # lobbies, which is small (see the concurrent-lobby estimate in
+    # ops/DEPLOY.md). 256MB gives comfortable headroom above that baseline
+    # without letting a bug (e.g. an unbounded reconnect-buffer leak) take
+    # down the whole box; 0.5-1 CPU is generous for a process that's
+    # relaying small JSON messages, not doing sustained computation — a
+    # sustained flood hitting the limit is `RATE_LIMITED`'s job (see
+    # docs/ARCHITECTURE.md §A's ErrorCode) to reject, not a bigger CPU
+    # allowance to absorb.
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 256M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+
+  caddy:
+    build:
+      context: ..
+      dockerfile: ops/Dockerfile
+      target: caddy
+    image: party-games-caddy:local
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      - '80:80'
+      - '443:443'
+    environment:
+      # Read by ops/Caddyfile's own `{$DOMAIN:localhost}` fallback syntax.
+      # Set it in ops/.env (copy from ops/.env.example) or export it in the
+      # shell before `docker compose up` — see ops/DEPLOY.md. The
+      # `:-localhost` default here matters even though the Caddyfile has
+      # its own `:localhost` fallback: Caddy's fallback only kicks in when
+      # the variable is fully UNSET, and Compose passing DOMAIN as a set
+      # empty string (which `${DOMAIN:-}` does whenever the shell doesn't
+      # have it) still counts as "set" — that combination made Caddy parse
+      # an empty site address and crash-loop on `unrecognized global
+      # option: encode` (verified by hand while building this). Defaulting
+      # here too means DOMAIN is never passed through as an empty string.
+      - DOMAIN=${DOMAIN:-localhost}
+    volumes:
+      # Let's Encrypt certificates/keys and Caddy's own state, so a
+      # restart (or `--build` after a code update) doesn't re-issue a
+      # certificate every time — Let's Encrypt rate-limits repeated
+      # issuance for the same domain.
+      - caddy-data:/data
+      - caddy-config:/config
+    # Caddy itself idles under 30-40MB; the client bundle it serves is a
+    # handful of static files (no image/video assets checked in — see
+    # ASSETS.md). 128MB/0.5 CPU is headroom, not a tight fit.
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 128M
+        reservations:
+          cpus: '0.1'
+          memory: 32M
+
+volumes:
+  caddy-data:
+  caddy-config:
