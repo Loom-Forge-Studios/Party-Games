@@ -1,46 +1,40 @@
-// STUB ONLY — owned by A8 (Wave 2).
+// Owned by A8 (Wave 2). Registers the real Checkers rules module into
+// @party/engine's shared registry, overwriting the trivial stub — see
+// packages/engine/src/registry.ts's header comment for why this is a
+// deliberate conflict-avoidance pattern (this file is the only thing A8
+// touches in a shared namespace, and it does so via registerGame(), never
+// by editing registry.ts directly).
 //
-// Real Checkers rules (setup/reduce/view/currentActors/isTerminal/
-// defaultAction) go here. This file's only job for A0 is to compile and
-// demonstrate the intended pattern: a game package registers itself into
-// @party/engine's shared registry via registerGame(), overwriting the
-// engine's built-in trivial stub for this id — so A8 never has to touch
-// packages/engine/src/registry.ts directly.
+// Rules live in module.ts (must not import Three.js or @party/client — see
+// docs/ARCHITECTURE.md §7's rules/presenter split) and route all
+// randomness through the injected Rng (there happens to be none needed for
+// Checkers — see module.ts's header comment).
 //
-// Rule modules must not import Three.js (see docs/ARCHITECTURE.md
-// "rules/presenter split") and must route all randomness through the
-// injected Rng (ctx.rng in SetupCtx/ReduceCtx) — never Math.random().
+// Deliberately NOT re-exported from here: presenter.ts. Whatever
+// eventually imports this file for its registerGame() side effect (a
+// server-side game registry bootstrap, per §7 "must be registered/
+// reachable") must be able to do so in plain Node without pulling in
+// Three.js or @party/client — see this package's package.json "exports"
+// map, which exposes the presenter as a separate "./presenter" subpath
+// for the client bundle to import instead.
 
-import { registerGame, IllegalAction, type GameModule } from '@party/engine';
-
-interface CheckersState {
-  // Real board representation lands in Wave 2.
-}
-
-type CheckersAction = unknown;
-type CheckersView = Record<string, never>;
-
-const checkersModule: GameModule<CheckersState, CheckersAction, CheckersView> = {
-  meta: {
-    id: 'checkers',
-    title: 'Checkers',
-    minPlayers: 2,
-    maxPlayers: 2,
-    estMinutes: 15,
-    summary: 'Classic diagonal-move capture game on an 8x8 board. Rules not implemented yet.',
-  },
-  setup: () => ({}),
-  reduce: () => {
-    throw new IllegalAction('checkers: no rules implemented yet');
-  },
-  view: () => ({}),
-  currentActors: () => [],
-  isTerminal: () => null,
-  defaultAction: () => {
-    throw new IllegalAction('checkers: no default action implemented yet');
-  },
-};
+import { registerGame } from '@party/engine';
+import { checkersModule } from './module.js';
 
 registerGame('checkers', checkersModule);
 
 export default checkersModule;
+
+export {
+  checkersModule,
+  DEFAULT_FORCED_CAPTURE,
+  DEFAULT_DRAW_PLY_LIMIT,
+  CROWNED_HOLD_MS,
+  GAME_OVER_HOLD_MS,
+  type CheckersOptions,
+  type CheckersState,
+  type CheckersAction,
+  type CheckersMoveAction,
+  type CheckersView,
+  type CheckersPieceView,
+} from './module.js';
