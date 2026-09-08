@@ -1,43 +1,25 @@
-// STUB ONLY — owned by A9 (Wave 2).
+// Owned by A9. Registers the real Hold'em rules module (module.ts) into
+// @party/engine's shared registry, overwriting the trivial stub that was
+// here for Wave 1 — see packages/engine/src/registry.ts for why this file,
+// not the registry, is where that overwrite happens.
 //
-// Real Hold'em poker rules (setup/reduce/view/currentActors/isTerminal/
-// defaultAction — betting rounds, hand evaluation, pot/side-pot handling,
-// hole cards hidden per-viewer in view()) go here. See packages/games/checkers
-// for the registerGame() pattern this file follows.
-//
-// Rule modules must not import Three.js and must route all randomness
-// (deck shuffling!) through the injected Rng — never Math.random().
+// module.ts (rules) must never import Three.js or @party/client — only
+// presenter.ts (client-side rendering) does. See docs/ARCHITECTURE.md
+// §7 "rules/presenter split".
 
-import { registerGame, IllegalAction, type GameModule } from '@party/engine';
+export { holdemModule } from './module.js';
+export type {
+  HoldemState,
+  HoldemAction,
+  HoldemView,
+  HoldemPublicPlayerView,
+  ShowdownReveal,
+  PotAward,
+  Street,
+} from './state.js';
+export type { Card, Suit } from './deck.js';
+export { bestHandOf, compareHandScores, HAND_CATEGORY, type HandScore, type HandCategory } from './evaluator.js';
+export { computeSidePots, computeUncalledRefund, splitPotAmount, orderSeatsFromLeftOfDealer } from './pots.js';
 
-interface HoldemState {
-  // Real table/deck/pot representation lands in Wave 2.
-}
-
-type HoldemAction = unknown;
-type HoldemView = Record<string, never>;
-
-const holdemModule: GameModule<HoldemState, HoldemAction, HoldemView> = {
-  meta: {
-    id: 'holdem',
-    title: "Hold'em Poker",
-    minPlayers: 2,
-    maxPlayers: 8,
-    estMinutes: 30,
-    summary: 'Community-card poker with betting rounds. Rules not implemented yet.',
-  },
-  setup: () => ({}),
-  reduce: () => {
-    throw new IllegalAction('holdem: no rules implemented yet');
-  },
-  view: () => ({}),
-  currentActors: () => [],
-  isTerminal: () => null,
-  defaultAction: () => {
-    throw new IllegalAction('holdem: no default action implemented yet');
-  },
-};
-
-registerGame('holdem', holdemModule);
-
+import { holdemModule } from './module.js';
 export default holdemModule;

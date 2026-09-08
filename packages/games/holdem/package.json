@@ -11,6 +11,12 @@
   },
   "dependencies": {
     "@party/protocol": "*",
-    "@party/engine": "*"
+    "@party/engine": "*",
+    "@party/client": "*",
+    "three": "^0.186.0"
+  },
+  "devDependencies": {
+    "@types/three": "^0.185.4",
+    "jsdom": "^25.0.1"
   }
 }
