@@ -53,7 +53,7 @@ export interface SeatLayout {
   position: { x: number; y: number; z: number };
   /** Yaw, radians, facing the table centre. */
   rotationY: number;
-  /** Placeholder body (capsule + nameplate) for this seat, positioned/rotated at the seat's world transform. */
+  /** Low-poly primitive humanoid body + nameplate for this seat, positioned/rotated at the seat's world transform. */
   avatar: THREE.Object3D;
   /** Over-the-shoulder home camera pose for this seat, looking at table centre. */
   cameraPose: CameraPose;
