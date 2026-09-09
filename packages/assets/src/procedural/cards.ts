@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { buildDrawnTexture, type RGB } from './canvas.js';
+import { buildDrawnTexture, canvasAvailable, type RGB } from './canvas.js';
 
 /** Standard 52-card ranks, ace-high order for display purposes only. */
 export const CARD_RANKS = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'] as const;
@@ -34,13 +34,65 @@ const CARD_WIDTH = 0.09;
 const CARD_HEIGHT = 0.1257;
 const CARD_THICKNESS = 0.002;
 
+// Real CC0 card faces (see /ASSETS.md) — Kenney's Playing Cards Pack,
+// served from packages/client/public/ so Vite serves them at this
+// absolute path in both dev and the built site. `card_<suit>_<rank>.png`
+// is Kenney's own naming: numeric ranks are zero-padded 2 digits
+// ("04", "10"), face cards are a bare letter ("A", "J", "Q", "K").
+const KENNEY_SUIT_NAME: Record<CardSuitCode, string> = { S: 'spades', H: 'hearts', D: 'diamonds', C: 'clubs' };
+
+function kenneyRankToken(rank: CardRank): string {
+  return rank === 'A' || rank === 'J' || rank === 'Q' || rank === 'K' ? rank : rank.padStart(2, '0');
+}
+
+function kenneyCardUrl(rank: CardRank, suit: CardSuitCode): string {
+  return `/assets/cards/card_${KENNEY_SUIT_NAME[suit]}_${kenneyRankToken(rank)}.png`;
+}
+
+const KENNEY_CARD_BACK_URL = '/assets/cards/card_back.png';
+
+function loadKenneyTexture(url: string): THREE.Texture {
+  const texture = new THREE.TextureLoader().load(url);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+
 /**
- * A single playing card: a thin box with a canvas-drawn face (rank + suit
- * glyph, corner pips) on the front and a plain patterned back. All text and
- * geometry is drawn here — no scanned/photographed card art, so there is
- * nothing copyrighted to clear.
+ * A single playing card: a thin box with a real card face/back (Kenney's
+ * CC0 Playing Cards Pack, see /ASSETS.md) on a browser where `document` is
+ * available; falls back to the original canvas-drawn face (rank + suit
+ * glyph, corner pips — nothing copyrighted, drawn entirely in code) under
+ * Vitest's default 'node' environment, same constraint every other
+ * `document`-touching builder in this file/package already guards against.
  */
 export function buildPlayingCard(rank: CardRank, suit: CardSuitCode): THREE.Object3D {
+  if (canvasAvailable()) {
+    return buildKenneyCard(rank, suit);
+  }
+  return buildDrawnCard(rank, suit);
+}
+
+function buildKenneyCard(rank: CardRank, suit: CardSuitCode): THREE.Object3D {
+  const faceTexture = loadKenneyTexture(kenneyCardUrl(rank, suit));
+  const backTexture = loadKenneyTexture(KENNEY_CARD_BACK_URL);
+
+  const geometry = new THREE.BoxGeometry(CARD_WIDTH, CARD_THICKNESS, CARD_HEIGHT);
+  const edgeMaterial = new THREE.MeshStandardMaterial({ color: 0xf2efe8, roughness: 0.9 });
+  const materials = [
+    edgeMaterial, // +x
+    edgeMaterial, // -x
+    new THREE.MeshStandardMaterial({ map: faceTexture, roughness: 0.6 }), // +y (face up)
+    new THREE.MeshStandardMaterial({ map: backTexture, roughness: 0.6 }), // -y (face down)
+    edgeMaterial, // +z
+    edgeMaterial, // -z
+  ];
+
+  const mesh = new THREE.Mesh(geometry, materials);
+  mesh.name = `card:${rank}${suit}`;
+  return mesh;
+}
+
+function buildDrawnCard(rank: CardRank, suit: CardSuitCode): THREE.Object3D {
   const { symbol, color } = SUITS[suit];
   const faceTexture = buildDrawnTexture(256, [245, 242, 235], (ctx, size) => {
     ctx.fillStyle = 'rgb(245, 242, 235)';
