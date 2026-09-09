@@ -23,6 +23,47 @@ const COMMUNITY_CARD_GAP = 0.12;
 const CHIP_STACK_DISTANCE_RATIO = 0.72;
 const CHIP_BET_DISTANCE_RATIO = 0.5;
 
+const ACCENT_CHIP_COLOR = 0xd9a441; // bet/accent chips
+const STACK_CHIP_COLOR = 0x8f2d2d; // main stack chips
+
+// Real CC0 chip-face texture (see /ASSETS.md) — Kenney's Boardgame Pack's
+// "chipWhite_border" chip graphic (a neutral ringed/bordered chip face),
+// served from packages/client/public/ so Vite serves it at this absolute
+// path in both dev and build. It's applied as the cylinder's top-cap map
+// with the same accent/stack colour multiplied in (MeshStandardMaterial's
+// `color` tints `map`), so one small texture covers both chip types while
+// keeping the existing colour-coding.
+const CHIP_TOP_TEXTURE_URL = '/assets/chips/chip_top.png';
+
+/** Same fallback pattern as packages/assets/src/procedural/canvas.ts: real canvas/DOM in a browser, absent under plain Node (this package's own vitest run) — degrade to a flat colour instead of throwing. */
+function canvasAvailable(): boolean {
+  return typeof document !== 'undefined' && typeof document.createElement === 'function';
+}
+
+let chipTopTexture: THREE.Texture | null = null;
+
+function loadChipTopTexture(): THREE.Texture {
+  if (!chipTopTexture) {
+    chipTopTexture = new THREE.TextureLoader().load(CHIP_TOP_TEXTURE_URL);
+    chipTopTexture.colorSpace = THREE.SRGBColorSpace;
+  }
+  return chipTopTexture;
+}
+
+/**
+ * Builds the materials for a chip cylinder: a flat-coloured edge everywhere,
+ * plus a real chip-face texture (tinted by `color`) on the top cap when a
+ * canvas/DOM is available. `CylinderGeometry`'s default material groups are
+ * `[0] side, [1] top cap, [2] bottom cap`; the bottom cap is never visible
+ * (chips sit flush on the table) so it reuses the plain edge material.
+ */
+function buildChipMaterials(color: number): THREE.Material | THREE.Material[] {
+  const edgeMaterial = new THREE.MeshStandardMaterial({ color, roughness: 0.55 });
+  if (!canvasAvailable()) return edgeMaterial;
+  const topMaterial = new THREE.MeshStandardMaterial({ map: loadChipTopTexture(), color, roughness: 0.5 });
+  return [edgeMaterial, topMaterial, edgeMaterial];
+}
+
 /** Removes every child of a group without disposing shared geometry/material — see placeCard(). */
 function clearGroup(group: THREE.Group): void {
   while (group.children.length > 0) {
@@ -131,7 +172,7 @@ export class HoldemPresenter implements GamePresenter<HoldemView> {
     const height = Math.min(0.22, 0.015 + Math.log10(Math.max(1, amount)) * 0.045);
     const radius = accent ? 0.045 : 0.075;
     const geometry = new THREE.CylinderGeometry(radius, radius, height, 16);
-    const material = new THREE.MeshStandardMaterial({ color: accent ? 0xd9a441 : 0x8f2d2d, roughness: 0.55 });
+    const material = buildChipMaterials(accent ? ACCENT_CHIP_COLOR : STACK_CHIP_COLOR);
     const mesh = new THREE.Mesh(geometry, material);
     mesh.position.set(x, height / 2, z);
     group.add(mesh);
