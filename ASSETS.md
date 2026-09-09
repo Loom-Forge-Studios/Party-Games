@@ -56,6 +56,18 @@ small `THREE.TorusGeometry`, the same primitive `checkers/src/presenter.ts`'s
 scale/layout impact. The procedural disc stays the piece until a genuinely
 CC0 3D piece model turns up.
 
+**Codewords tile polish (no new binary asset):** checked Poly Haven's
+texture API for a parchment/cork-board/felt texture to replace the flat
+`HIDDEN_COLOR` face-down tile swatch (`packages/games/codewords/src/presenter.ts`)
+— it has no `cork`, `parchment`, `papyrus`, `cardboard`, `paper`, or `felt`
+tagged/named texture at all (checked against the full `/assets?t=textures`
+listing), so nothing to record here. Went procedural instead: the hidden
+tile now uses `buildNoiseTexture` (already existed in
+`packages/assets/src/procedural/canvas.ts` for the wood/felt table
+materials, newly exported from `@party/assets`'s index for reuse) for a
+subtle deterministic paper-grain speckle, per-tile-seeded so the 25 tiles
+aren't visibly identical copies.
+
 ## Wave 1 (A7) status
 
 `@party/assets` shipped zero binary asset files this wave. Every v1
