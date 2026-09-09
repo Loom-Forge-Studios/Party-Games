@@ -99,5 +99,5 @@ export function seatDistance(a: SeatLayout, b: SeatLayout): number {
   return Math.hypot(dx, dz);
 }
 
-/** Minimum standing-position gap that counts as "no overlap" for the placeholder capsule footprint. */
+/** Minimum standing-position gap that counts as "no overlap" for the avatar's footprint. */
 export const MIN_NON_OVERLAP_DISTANCE = AVATAR_FOOTPRINT_RADIUS * 2;
