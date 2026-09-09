@@ -103,12 +103,28 @@ function setMeshOpacity(obj: THREE.Object3D, opacity: number): void {
   });
 }
 
+// Sized relative to the disc's own radius, which is CELL_SIZE * 0.4 (see
+// packages/assets/src/procedural/checkers.ts's DISC_RADIUS comment) — kept
+// as a ratio here rather than importing that constant across the
+// assets/games package boundary, same duplication pattern DISC_HEIGHT
+// itself already uses between this package's layout.ts and that file.
+// NOTE: this used to be two flat literals (0.14 radius, 0.035 tube, +0.03
+// lift) left over from before the P1 scale fix (commit cdbb455) dropped
+// DISC_RADIUS from 0.4 to 0.072 — an unscaled king marker on the new disc
+// rendered as a golden ring roughly twice the piece's own diameter. Fixed
+// by expressing it as the same ratios the old literals implied against the
+// old DISC_RADIUS (0.4)/DISC_HEIGHT (0.14), just applied to today's values.
+const KING_MARKER_DISC_RADIUS = CELL_SIZE * 0.4;
+const KING_MARKER_RADIUS = KING_MARKER_DISC_RADIUS * 0.35;
+const KING_MARKER_TUBE = KING_MARKER_DISC_RADIUS * 0.0875;
+const KING_MARKER_LIFT = DISC_HEIGHT * (0.03 / 0.14);
+
 function buildKingMarker(owner: B.Seat): THREE.Object3D {
-  const geometry = new THREE.TorusGeometry(0.14, 0.035, 8, 20);
+  const geometry = new THREE.TorusGeometry(KING_MARKER_RADIUS, KING_MARKER_TUBE, 8, 20);
   const material = new THREE.MeshStandardMaterial({ color: 0xd4af37, roughness: 0.35, metalness: 0.6 });
   const mesh = new THREE.Mesh(geometry, material);
   mesh.rotation.x = Math.PI / 2;
-  mesh.position.y = DISC_HEIGHT / 2 + 0.03;
+  mesh.position.y = DISC_HEIGHT / 2 + KING_MARKER_LIFT;
   mesh.name = `checkers:king-marker:${owner}`;
   return mesh;
 }

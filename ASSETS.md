@@ -25,9 +25,26 @@ above was hand-downloaded by the user and handed off for integration.
 also sourced during this pass but is **CC BY-SA 3.0 / GFDL, not CC0** —
 this repo is public and CC0/original-only, so it was left out. Don't
 reintroduce it (or anything else from that set) without a real license
-change; the procedural checkers disc (already correctly scaled, see this
-file's `packages/games/checkers/src/layout.ts` history) stays as the v1.1
-piece until a genuinely CC0 3D piece model is found.
+change.
+
+**Checkers disc (this pass):** no external asset landed. Two already-vetted
+CC0 folders were checked for a top-face decal texture —
+`kenney/boardgame-pack`'s `PNG/Chips/*` (license.txt confirms CC0) render as
+scalloped-edge casino poker chips, not checkers pieces, and its
+`PNG/Pieces (*)/` folders are pawn/meeple silhouettes, not discs — neither
+reads as "checkers piece" if applied to this board; a nearby
+`opengameart/poker-chips-only-2d` folder had no license file present to
+verify at all, so per this repo's CC0-or-original rule it wasn't used
+either. Went with a code-only geometry upgrade instead (per this
+project's existing preference for that over a mediocre external asset):
+`buildCheckersDisc()` in `packages/assets/src/procedural/checkers.ts` now
+builds a chamfered-edge disc (three stacked cylinder sections instead of
+one flat one) plus a shallow decorative ring stamped into the top face (a
+small `THREE.TorusGeometry`, the same primitive `checkers/src/presenter.ts`'s
+`buildKingMarker()` already uses for the crown indicator). `DISC_RADIUS`/
+`DISC_HEIGHT` are unchanged, so this stays a drop-in visual upgrade with no
+scale/layout impact. The procedural disc stays the piece until a genuinely
+CC0 3D piece model turns up.
 
 ## Wave 1 (A7) status
 
