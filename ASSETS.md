@@ -15,13 +15,16 @@ third-party content.
 ## Visual rework (overseer, post-v1) status
 
 Real CC0 table texture, real card faces, and a real poker-chip face texture
-landed (rows above). Still open: a real 3D avatar model (to replace
-avatar.ts's capsule) and real checkers piece models. Poly Pizza and
-Kenney.nl both gate their actual *file* downloads behind a Cloudflare
-Turnstile bot-check that automation can't and shouldn't complete — Poly
-Haven's texture API (`dl.polyhaven.org`) has no such gate and was used
-directly for the table texture; the Kenney card pack and chip graphic above
-were hand-downloaded by the user and handed off for integration. An
+landed (rows above). The avatar (now a procedural low-poly humanoid, see
+avatar.ts) and the checkers disc (now a procedural chamfered piece with a
+decorative ring, see the "Checkers disc" note below) both ended up as
+code-only upgrades rather than external models — see each note below for
+why. Poly Pizza and Kenney.nl both gate their actual *file* downloads
+behind a Cloudflare Turnstile bot-check that automation can't and
+shouldn't complete — Poly Haven's texture API (`dl.polyhaven.org`) has no
+such gate and was used directly for the table texture; the Kenney card pack
+and chip graphic above were hand-downloaded by the user and handed off for
+integration. An
 OpenGameArt "Playing Card Assets (52-cards deck + Chips)" pack by mehrasaur
 (CC0, verified via https://opengameart.org/content/playing-card-assets-52-cards-deck-chips,
 no license file was bundled with the local download so the site itself was
@@ -30,6 +33,21 @@ art is a fine, equally-valid CC0 alternative, but Kenney's bordered/ringed
 chip graphic was judged to read slightly more clearly as a casino chip at
 the small on-screen size these chips render at, and keeps the sourcing
 consistent with the card pack above.
+
+**Avatar (this pass):** no external model landed. A CC0 low-poly humanoid
+(Quaternius' "Adventurer") was identified on Poly Pizza, but Poly Pizza
+gates the actual file download behind a Cloudflare Turnstile check —
+confirmed via a direct API request (`{"error":"Turnstile verification
+required"}`), which automation must not attempt to script around. The
+already-downloaded `kenney/`/`opengameart/` folders (see below) have no
+humanoid model either. Went with a code-only upgrade instead:
+`createAvatarPlaceholder()` in `packages/client/src/table/avatar.ts` now
+builds a six-primitive low-poly humanoid (sphere head, box torso, capsule
+arms/legs) instead of one capsule. `AVATAR_TOTAL_HEIGHT`/
+`AVATAR_FOOTPRINT_RADIUS` are derived from the new geometry rather than
+hand-picked, so the first-person eye-height math and seat-spacing checks
+stay accurate. If a genuinely CC0 humanoid GLB turns up later, it's a
+drop-in replacement behind the same function.
 
 **Explicitly rejected, do not use:** a cburnett chess/checkers piece set was
 also sourced during this pass but is **CC BY-SA 3.0 / GFDL, not CC0** —

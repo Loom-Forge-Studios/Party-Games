@@ -10,6 +10,7 @@
 
 import * as THREE from 'three';
 import type { PresenterCtx, GamePresenter } from '@party/presenter';
+import { TABLE_SURFACE_Y } from '@party/presenter';
 import type { GameEvent, GameId } from '@party/protocol';
 import { buildNoiseTexture, type RGB } from '@party/assets';
 import { GRID_SIZE } from './module.js';
@@ -165,7 +166,15 @@ export class CodewordsPresenter implements GamePresenter<CodewordsView> {
         // fully deterministic run to run.
         const visual = this.buildTileVisual(id, row * GRID_SIZE + col);
         const { x, z } = tileOffset(row, col);
-        visual.group.position.set(x, 0, z);
+        // ctx.table is the table Mesh itself (see packages/client/src/table/scene.ts's
+        // createTable()) — its own local origin sits at the table's vertical CENTRE, not its
+        // top surface, since the mesh's position.y is already lifted by half its own height.
+        // A child positioned at local y=0 sits inside the table's solid geometry, fully
+        // occluded — this used to leave every tile invisible regardless of its texture/label.
+        // TABLE_SURFACE_Y is the same local offset checkers'/holdem's presenters already use
+        // for exactly this reason (see e.g. checkers/presenter.ts's board tile `y =
+        // TABLE_SURFACE_Y + TILE_HEIGHT / 2`).
+        visual.group.position.set(x, TABLE_SURFACE_Y, z);
         ctx.table.add(visual.group);
         this.tiles.set(id, visual);
       }
@@ -187,7 +196,9 @@ export class CodewordsPresenter implements GamePresenter<CodewordsView> {
     this.cluePanel.add(this.clueLabel);
 
     const boardHalf = ((GRID_SIZE - 1) / 2) * SPACING + TILE_SIZE / 2;
-    this.cluePanel.position.set(0, TILE_HEIGHT + 0.01, -(boardHalf + 0.18));
+    // Same ctx.table local-origin offset as the tile grid above — without TABLE_SURFACE_Y
+    // this panel sits inside the table's solid geometry too.
+    this.cluePanel.position.set(0, TABLE_SURFACE_Y + TILE_HEIGHT + 0.01, -(boardHalf + 0.18));
     ctx.table.add(this.cluePanel);
   }
 
