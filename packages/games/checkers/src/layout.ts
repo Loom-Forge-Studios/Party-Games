@@ -25,7 +25,7 @@ export const CELL_SIZE = 0.18;
 export const TABLE_SURFACE_Y = 0.08;
 
 /** Matches checkers/disc/{light,dark}'s DISC_HEIGHT in packages/assets/src/procedural/checkers.ts, so a disc's centre rests flush on the table surface. */
-export const DISC_HEIGHT = 0.14;
+export const DISC_HEIGHT = 0.025;
 
 /** World-space Y a disc's centre rests at. */
 export const PIECE_REST_Y = TABLE_SURFACE_Y + DISC_HEIGHT / 2;

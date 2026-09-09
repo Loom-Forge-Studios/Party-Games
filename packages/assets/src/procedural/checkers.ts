@@ -7,8 +7,13 @@ const DISC_COLOR: Record<CheckersVariant, number> = {
   dark: 0x3a2a1a,
 };
 
-const DISC_RADIUS = 0.4;
-const DISC_HEIGHT = 0.14;
+// Sized against packages/games/checkers/src/layout.ts's CELL_SIZE = 0.18:
+// radius ~40% of a cell so the disc reads as a distinct piece with a visible
+// gap to its neighbours, height keeps the same height/diameter ratio (~0.17)
+// a real checkers piece has. Keep DISC_HEIGHT in sync with layout.ts's own
+// copy of this constant (see that file's comment).
+const DISC_RADIUS = 0.072;
+const DISC_HEIGHT = 0.025;
 
 /** A checkers disc: a flat cylinder in one of two colours. `checkers/disc/<light|dark>`. */
 export function buildCheckersDisc(variant: CheckersVariant): THREE.Object3D {

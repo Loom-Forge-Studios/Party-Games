@@ -54,6 +54,14 @@ export function createPresenterCtx(options: CreatePresenterCtxOptions): Presente
   const emit = options.emit ?? (() => {});
 
   options.camera.setHome(seats[options.localSeat].cameraPose);
+  // setHome() only records the pose 'home' eases back to later — see
+  // @party/presenter's CameraDirector doc comment, "snap(): ... used for
+  // ... first mount". Without this, a freshly-constructed CameraDirector
+  // sits at its own generic DEFAULT_HOME (ThreeCameraDirector.ts) — a
+  // wide establishing view, not this seat's actual eye-level pose — until
+  // some later focus/home cycle happens to move it. Snap immediately so
+  // the very first frame already shows this seat's real first-person view.
+  options.camera.snap();
 
   return {
     scene,

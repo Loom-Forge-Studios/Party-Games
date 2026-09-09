@@ -16,8 +16,10 @@ import { cardAssetKey } from './deck.js';
 import type { HoldemAction, HoldemView } from './state.js';
 
 const HOLE_CARD_DISTANCE_RATIO = 0.42; // fraction of the way from table centre toward the seat
-const HOLE_CARD_GAP = 0.16;
-const COMMUNITY_CARD_GAP = 0.18;
+// Card width is 0.09 (packages/assets/src/procedural/cards.ts) — these gaps must stay a bit
+// larger than that so adjacent cards don't overlap.
+const HOLE_CARD_GAP = 0.11;
+const COMMUNITY_CARD_GAP = 0.12;
 const CHIP_STACK_DISTANCE_RATIO = 0.72;
 const CHIP_BET_DISTANCE_RATIO = 0.5;
 

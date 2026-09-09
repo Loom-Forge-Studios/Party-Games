@@ -14,6 +14,17 @@ export const AVATAR_TOTAL_HEIGHT = CAPSULE_CYLINDER_HEIGHT + CAPSULE_RADIUS * 2;
  * A capsule body + nameplate, already assembled but NOT yet positioned in
  * world space — the caller (seat-layout.ts) sets position/rotation on the
  * returned group.
+ *
+ * `isLocal` now also controls visibility, not just tint (P3 first-person
+ * rework): the local seat's own camera sits at this exact avatar's position
+ * (see seat-layout.ts's computeHomeCameraPose) — rendering the local
+ * player's own body/nameplate there would mean staring at the inside of
+ * your own head. Only *this* seat's own client hides them; every other
+ * client renders its own local scene the same way, so everyone else still
+ * sees this player's avatar normally from their own seat. The mesh and
+ * nameplate are still built and added to the group (kept `visible = false`
+ * rather than omitted) so the scene graph shape stays uniform across seats
+ * for anything inspecting it (tests, focus-hint object resolution).
  */
 export function createAvatarPlaceholder(label: string, isLocal: boolean): THREE.Group {
   const group = new THREE.Group();
@@ -29,10 +40,12 @@ export function createAvatarPlaceholder(label: string, isLocal: boolean): THREE.
   body.castShadow = true;
   body.receiveShadow = true;
   body.position.y = AVATAR_TOTAL_HEIGHT / 2;
+  body.visible = !isLocal;
   group.add(body);
 
   const nameplate = createNameplate(label);
   nameplate.position.y = AVATAR_TOTAL_HEIGHT + 0.18;
+  nameplate.visible = !isLocal;
   group.add(nameplate);
 
   return group;

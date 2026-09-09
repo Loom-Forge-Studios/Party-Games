@@ -10,6 +10,7 @@
 // pieces together and forwards server messages to the mounted presenter.
 
 import type { RoomState } from '@party/protocol';
+import { PlaceholderAssetLoader } from '@party/assets';
 import type { Connection } from './connection.js';
 import type { AppStore } from './store.js';
 import { loadGamePresenter } from './game-presenters.js';
@@ -22,6 +23,19 @@ import {
 import { createPresenterCtx } from '../table/presenter-ctx.js';
 import { ThreeCameraDirector } from '../camera/CameraDirector.js';
 import { el } from '../ui/dom.js';
+
+// One real AssetLoader shared across every table mount in this tab's
+// lifetime — its cache is per-key (checkers/disc/light, card/AS, ...), not
+// per-room, so reusing it across games/rematches is a straightforward win.
+// Without passing this explicitly, createPresenterCtx() (see
+// ../table/presenter-ctx.ts) silently defaults to its own local
+// PlaceholderAssetLoader — a stand-in that renders every key, real key or
+// not, as the same plain 0.3-unit box, built only so Wave 1/2 presenters
+// weren't blocked on this package landing. That default was never swapped
+// out here, which is the actual reason every "piece" in the shipped app —
+// checkers discs included — rendered as an oversized, overlapping box
+// instead of the real procedural asset this package already builds.
+const assetLoader = new PlaceholderAssetLoader();
 
 export interface TableMountOptions {
   /** The container index.html reserves for the 3D canvas (see #app-canvas) — sibling to, not inside, the DOM overlay root. */
@@ -73,6 +87,7 @@ export async function mountTable(opts: TableMountOptions): Promise<MountedTable>
     localSeat,
     camera: cameraDirector,
     labels,
+    assets: assetLoader,
     emit: (action) => connection.send({ t: 'game.action', action }),
   });
 

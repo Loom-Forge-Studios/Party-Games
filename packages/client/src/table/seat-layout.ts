@@ -3,7 +3,7 @@
 // header comment for why that split matters for headless testing.
 
 import { TABLE_SURFACE_Y } from './scene.js';
-import { createAvatarPlaceholder, AVATAR_FOOTPRINT_RADIUS } from './avatar.js';
+import { createAvatarPlaceholder, AVATAR_FOOTPRINT_RADIUS, AVATAR_TOTAL_HEIGHT } from './avatar.js';
 import type { SeatLayout } from './types.js';
 import type { CameraPose } from '../camera/director.js';
 
@@ -12,10 +12,17 @@ export const MAX_SEATS = 8;
 
 /** Distance from table centre to each seat's standing position. */
 export const SEAT_RING_RADIUS = 2.1;
-/** How far behind the seat position the "over-the-shoulder" camera sits. */
-const CAMERA_BEHIND_OFFSET = 0.9;
-/** How high above the seat's standing position the camera sits. */
-const CAMERA_HEIGHT = 1.55;
+/**
+ * First-person home pose (P3 rework — was a third-person "over-the-shoulder"
+ * pose pulled back by a CAMERA_BEHIND_OFFSET and raised above head height;
+ * that blocked the board with the local player's own avatar). The camera
+ * now sits exactly at the seat's standing position — nowhere else — at
+ * roughly eye height, matching where this seat's own eyes would be. Fraction
+ * of AVATAR_TOTAL_HEIGHT a standing person's eyes sit at (~93% of full
+ * height is a standard anthropometric ratio).
+ */
+const EYE_HEIGHT_RATIO = 0.93;
+const EYE_HEIGHT = AVATAR_TOTAL_HEIGHT * EYE_HEIGHT_RATIO;
 /** Eye-line height used for the look-at target, above the table surface. */
 const LOOK_AT_HEIGHT = TABLE_SURFACE_Y + 0.35;
 
@@ -60,7 +67,7 @@ export function computeSeatLayout(seatCount: number, localSeat: number, options:
     avatar.position.set(x, 0, z);
     avatar.rotation.y = rotationY;
 
-    const cameraPose = computeHomeCameraPose(x, z, angle);
+    const cameraPose = computeHomeCameraPose(x, z);
 
     seats.push({
       seat,
@@ -73,16 +80,14 @@ export function computeSeatLayout(seatCount: number, localSeat: number, options:
   return seats;
 }
 
-function computeHomeCameraPose(seatX: number, seatZ: number, angle: number): CameraPose {
-  // Outward radial unit vector at this seat's angle.
-  const outX = Math.sin(angle);
-  const outZ = Math.cos(angle);
+/**
+ * The seat's own eye-view: camera sits AT the seat's standing position (no
+ * behind/outward offset — that was the third-person pull-back) at eye
+ * height, looking toward the table the way the seated player actually would.
+ */
+function computeHomeCameraPose(seatX: number, seatZ: number): CameraPose {
   return {
-    position: {
-      x: seatX + outX * CAMERA_BEHIND_OFFSET,
-      y: CAMERA_HEIGHT,
-      z: seatZ + outZ * CAMERA_BEHIND_OFFSET,
-    },
+    position: { x: seatX, y: EYE_HEIGHT, z: seatZ },
     target: { x: 0, y: LOOK_AT_HEIGHT, z: 0 },
   };
 }

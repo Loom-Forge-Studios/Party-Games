@@ -23,9 +23,16 @@ export function parseCardKey(key: string): { rank: CardRank; suit: CardSuitCode 
   return { rank: m[1] as CardRank, suit: m[2] as CardSuitCode };
 }
 
-const CARD_WIDTH = 0.63;
-const CARD_HEIGHT = 0.88;
-const CARD_THICKNESS = 0.004;
+// Same P1-class scale bug as checkers' disc (see packages/games/checkers/src/layout.ts's
+// CELL_SIZE comment): these were literal card dimensions in inches-as-world-units, ~7x too
+// big for TABLE_RADIUS = 1.3 in packages/presenter/src/index.ts — a single card would have
+// spanned nearly half the table. Kept the real 63:88 aspect ratio, scaled down to sit
+// comfortably alongside checkers' disc (~0.144 diameter) and codewords' tile (0.15) at this
+// table's scale. holdem/presenter.ts's HOLE_CARD_GAP/COMMUNITY_CARD_GAP were sized against
+// the old width and must move with this.
+const CARD_WIDTH = 0.09;
+const CARD_HEIGHT = 0.1257;
+const CARD_THICKNESS = 0.002;
 
 /**
  * A single playing card: a thin box with a canvas-drawn face (rank + suit
