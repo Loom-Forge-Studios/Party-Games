@@ -16,3 +16,9 @@ export { MEEPLE_COLORS, type MeepleColorName } from './procedural/meeple.js';
 export { CARD_RANKS, type CardRank, type CardSuitCode } from './procedural/cards.js';
 export type { CheckersVariant } from './procedural/checkers.js';
 export type { TableMaterialKind } from './procedural/table.js';
+
+// `buildNoiseTexture` is this package's shared deterministic-noise texture
+// builder (wood grain, felt nap, ...) — exported so other packages'
+// presenters (e.g. codewords' hidden-tile parchment texture) can reuse the
+// same hash-based, canvas-optional approach instead of reimplementing it.
+export { buildNoiseTexture, type RGB } from './procedural/canvas.js';

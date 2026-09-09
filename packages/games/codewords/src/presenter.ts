@@ -11,6 +11,7 @@
 import * as THREE from 'three';
 import type { PresenterCtx, GamePresenter } from '@party/presenter';
 import type { GameEvent, GameId } from '@party/protocol';
+import { buildNoiseTexture, type RGB } from '@party/assets';
 import { GRID_SIZE } from './module.js';
 import type { CodewordsView, CodewordsTileView, TileColor } from './module.js';
 
@@ -18,7 +19,14 @@ const TILE_SIZE = 0.15;
 const TILE_GAP = 0.02;
 const SPACING = TILE_SIZE + TILE_GAP;
 const TILE_HEIGHT = 0.018;
-const LABEL_Y_OFFSET = TILE_HEIGHT / 2 + 0.001;
+// Playtest fix: this was `TILE_HEIGHT / 2 + 0.001`, which places the label
+// plane at half the tile box's height — i.e. INSIDE the solid box (whose
+// top face sits at y = TILE_HEIGHT), not on top of it. Verified with a
+// real THREE.Raycaster straight down through the tile: with the old value
+// the opaque box face was the closer hit, fully occluding the label, so no
+// tile's word was ever actually visible. Offset from the box's actual top
+// face instead.
+const LABEL_Y_OFFSET = TILE_HEIGHT + 0.001;
 const KEY_RING_Y_OFFSET = 0.001;
 
 const HIDDEN_COLOR = 0xe4d9bd; // face-down parchment
@@ -29,6 +37,20 @@ const TILE_COLORS: Record<TileColor, number> = {
   assassin: 0x1b1b1b,
 };
 const CLUE_PANEL_COLOR = 0x1f2933;
+
+// Hidden-tile "face-down parchment" texture: no clean CC0 parchment/
+// cork-board/felt texture turned up on Poly Haven's texture API (checked
+// tags cork/parchment/papyrus/felt/cardboard/paper — none exist there; see
+// /ASSETS.md), so this stays procedural — a subtle paper-grain speckle
+// over HIDDEN_COLOR, built the same deterministic-hash way
+// packages/assets/src/procedural/canvas.ts's wood/felt table textures are
+// (buildNoiseTexture, reused from @party/assets rather than duplicated
+// here), instead of the flat single-colour swatch this used to be. Base
+// colour is HIDDEN_COLOR itself split into RGB; variance is intentionally
+// small — a paper mottle, not a blotchy pattern that would fight the word
+// label's legibility.
+const HIDDEN_BASE: RGB = [0xe4, 0xd9, 0xbd];
+const HIDDEN_VARIANCE: RGB = [10, 9, 7];
 
 /** Same fallback pattern as packages/assets/src/procedural/canvas.ts: real canvas in a browser, absent under plain Node (this package's own vitest run) — degrade to a flat colour instead of throwing. */
 function canvasAvailable(): boolean {
@@ -98,6 +120,8 @@ interface TileVisual {
   body: THREE.Mesh<THREE.BoxGeometry, THREE.MeshStandardMaterial>;
   label: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial>;
   keyRing: THREE.Mesh<THREE.RingGeometry, THREE.MeshBasicMaterial>;
+  /** This tile's own hidden-state parchment texture (own instance per tile, not shared, so unmount() can dispose it independently of its neighbours — see buildTileVisual()). */
+  hiddenTexture: THREE.Texture;
   lastWord: string | null;
   lastRevealed: boolean;
   lastColor: TileColor | undefined;
@@ -135,7 +159,11 @@ export class CodewordsPresenter implements GamePresenter<CodewordsView> {
     for (let row = 0; row < GRID_SIZE; row++) {
       for (let col = 0; col < GRID_SIZE; col++) {
         const id = `tile-${row}-${col}`;
-        const visual = this.buildTileVisual(id);
+        // Seeds the hidden-tile parchment noise (see buildTileVisual) —
+        // just this tile's position index, so every tile gets its own
+        // grain pattern (not 25 visibly-identical copies) while staying
+        // fully deterministic run to run.
+        const visual = this.buildTileVisual(id, row * GRID_SIZE + col);
         const { x, z } = tileOffset(row, col);
         visual.group.position.set(x, 0, z);
         ctx.table.add(visual.group);
@@ -163,13 +191,21 @@ export class CodewordsPresenter implements GamePresenter<CodewordsView> {
     ctx.table.add(this.cluePanel);
   }
 
-  private buildTileVisual(id: string): TileVisual {
+  private buildTileVisual(id: string, seed: number): TileVisual {
     const group = new THREE.Group();
     group.name = id; // scene object id — this is what tile.revealed / assassin.hit focus hints target.
 
+    // Own texture instance per tile (not a module-level shared one) so
+    // unmount() can dispose each independently without worrying about a
+    // texture still being referenced by a sibling tile's material.
+    const hiddenTexture = buildNoiseTexture(32, HIDDEN_BASE, HIDDEN_VARIANCE, seed);
     const body = new THREE.Mesh(
       new THREE.BoxGeometry(TILE_SIZE, TILE_HEIGHT, TILE_SIZE),
-      new THREE.MeshStandardMaterial({ color: HIDDEN_COLOR, roughness: 0.7 }),
+      // White base colour: the noise texture already carries HIDDEN_COLOR's
+      // tint (see HIDDEN_BASE), so tinting the material on top of it would
+      // just darken it. Revealed tiles switch to map:null + a flat colour
+      // in renderTile() instead — see the comment there.
+      new THREE.MeshStandardMaterial({ map: hiddenTexture, color: 0xffffff, roughness: 0.8 }),
     );
     body.position.y = TILE_HEIGHT / 2;
     group.add(body);
@@ -194,7 +230,7 @@ export class CodewordsPresenter implements GamePresenter<CodewordsView> {
     keyRing.position.y = KEY_RING_Y_OFFSET;
     group.add(keyRing);
 
-    return { group, body, label, keyRing, lastWord: null, lastRevealed: false, lastColor: undefined };
+    return { group, body, label, keyRing, hiddenTexture, lastWord: null, lastRevealed: false, lastColor: undefined };
   }
 
   renderView(view: CodewordsView): void {
@@ -217,7 +253,19 @@ export class CodewordsPresenter implements GamePresenter<CodewordsView> {
 
     if (visual.lastRevealed !== t.revealed || visual.lastColor !== t.color) {
       const bodyColor = t.revealed && t.color ? TILE_COLORS[t.color] : HIDDEN_COLOR;
-      visual.body.material.color.setHex(bodyColor);
+      if (t.revealed && t.color) {
+        // Revealed: flat team colour, no texture — the parchment grain is
+        // a "face-down secret" cue, and a flat colour reads faster/more
+        // clearly as "this is team X's tile" than a tinted-but-textured one.
+        visual.body.material.map = null;
+        visual.body.material.color.setHex(bodyColor);
+      } else {
+        // Still hidden: this tile's own parchment texture, untinted (the
+        // texture already carries HIDDEN_COLOR — see buildTileVisual()).
+        visual.body.material.map = visual.hiddenTexture;
+        visual.body.material.color.setHex(0xffffff);
+      }
+      visual.body.material.needsUpdate = true; // map presence changed — needed for the shader's USE_MAP variant to recompile.
       if (visual.lastRevealed !== t.revealed) {
         visual.label.material.map = buildLabelTexture(t.word, colorToCss(bodyColor));
         visual.label.material.needsUpdate = true;
@@ -293,6 +341,12 @@ export class CodewordsPresenter implements GamePresenter<CodewordsView> {
       ctx?.table.remove(visual.group);
       visual.body.geometry.dispose();
       visual.body.material.dispose();
+      // Disposed via the stored reference, not `.material.map` — a
+      // revealed tile has already nulled `.map` out (see renderTile()),
+      // but this texture was built fresh per-tile in buildTileVisual() and
+      // is never shared with another tile, so it's always safe to dispose
+      // here regardless of whether it's still the active map.
+      visual.hiddenTexture.dispose();
       visual.label.geometry.dispose();
       visual.label.material.map?.dispose();
       visual.label.material.dispose();
