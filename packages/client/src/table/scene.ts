@@ -13,10 +13,37 @@ import * as THREE from 'three';
 import { TABLE_RADIUS, TABLE_HEIGHT, TABLE_SURFACE_Y } from '@party/presenter';
 export { TABLE_RADIUS, TABLE_HEIGHT, TABLE_SURFACE_Y };
 
+// Real CC0 texture (see /ASSETS.md) — served from packages/client/public/,
+// so Vite serves it at this absolute path in both dev and the built site.
+// Loaded directly via THREE.TextureLoader rather than through
+// PresenterCtx.assets: createTable() runs inside createScene(), which
+// createPresenterCtx() calls synchronously before ctx.assets even exists
+// (see presenter-ctx.ts) — going through the async AssetLoader seam here
+// would mean making scene/ctx assembly async across every call site. A
+// TextureLoader load is fire-and-forget: the mesh renders with the
+// material's base color until the image decodes, then table-mount.ts's
+// continuous per-frame render loop (see its own comment on why it never
+// idles while a table is mounted) naturally picks up the texture on a
+// later frame — no extra wiring needed.
+const TABLE_WOOD_TEXTURE_URL = '/assets/textures/table-wood-diffuse.jpg';
+
 /** The table mesh, centred at the origin, receiving shadows from seat avatars and pieces. */
 export function createTable(): THREE.Object3D {
   const geometry = new THREE.CylinderGeometry(TABLE_RADIUS, TABLE_RADIUS, TABLE_HEIGHT, 48);
-  const material = new THREE.MeshStandardMaterial({ color: 0x2e5339, roughness: 0.85, metalness: 0 });
+  const material = new THREE.MeshStandardMaterial({ color: 0x8a6440, roughness: 0.35, metalness: 0.05 });
+  // TextureLoader.load() reaches for `document` internally (to build an
+  // <img>) — unavailable under Vitest's default 'node' environment, same
+  // constraint avatar.ts's createNameplate() and codewords/presenter.ts's
+  // canvasAvailable() already guard against. Fall back to the plain wood-
+  // brown color above so this stays constructible headlessly.
+  if (typeof document !== 'undefined' && typeof document.createElement === 'function') {
+    const map = new THREE.TextureLoader().load(TABLE_WOOD_TEXTURE_URL);
+    map.colorSpace = THREE.SRGBColorSpace;
+    map.wrapS = THREE.RepeatWrapping;
+    map.wrapT = THREE.RepeatWrapping;
+    material.map = map;
+    material.color.set(0xffffff);
+  }
   const table = new THREE.Mesh(geometry, material);
   table.position.y = TABLE_HEIGHT / 2;
   table.receiveShadow = true;
